@@ -1,3 +1,5 @@
+temp/
+info-todo
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
