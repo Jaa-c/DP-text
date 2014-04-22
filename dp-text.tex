@@ -94,11 +94,17 @@ Syntéza textur z fotografií je poměrně složitá, protože 	na výsledný mo
 
 \section{Popis problému}
 
-Předpokládejme, že se díváme na statickou scénu s konstantním osvětlením, kde se pohybuje pouze pozorovatel. Za těchto podmínek můžeme popsat libovolnou fotografii pomocí pozice a orientace kamery. Pokud bychom vyfotili sférickou fotografii v každé možné pozici kamery, mohli bychom vyrenderovat kompletní scénu z libovolného pohledu. Kombinací všech 3D pozic kamery $(x, y, z)$ a směrů $(\theta, \phi)$ získáme plenoptickou funkci $\textbf{L}(x, y, z, \theta, \phi)$ \cite{Adelson91}. Snahou je aproximovat funkci \textbf{L} pomocí konečného množství diskrétních vzorků $(x, y, z, \theta, \phi)$ a z této reprezentace efektivně renderovat nové pohledy (s pomocí 3D geometrie). Povrch geometrie můžeme popsat jako funkci $\textbf{G} : (x, y, z, \theta, \phi) \to (x_0, y_0, z_0)$, tedy jako mapování pohledových paprsků na 3D souřadnice povrchu. Jako $\textbf{G}_0$ si označíme funkci skutečného povrchu, $\textbf{G}_A$  reprezentuje aproximovaný povrch (rekonstruovaný 3D model).
+Předpokládejme, že se díváme na statickou scénu s konstantním osvětlením, kde se pohybuje pouze pozorovatel. Za těchto podmínek můžeme popsat libovolnou fotografii pomocí pozice a orientace kamery. Pokud bychom vyfotili sférickou fotografii v každé možné pozici kamery, mohli bychom vyrenderovat kompletní scénu z libovolného pohledu. Kombinací všech 3D pozic kamery $(x, y, z)$ a směrů $(\theta, \phi)$ získáme plenoptickou funkci $\textbf{L}(x, y, z, \theta, \phi)$ \cite{Adelson91}. Snahou je aproximovat funkci \textbf{L} pomocí konečného množství diskrétních vzorků $(x, y, z, \theta, \phi)$ a z této reprezentace efektivně renderovat nové pohledy (s pomocí 3D geometrie). Povrch geometrie můžeme popsat jako funkci $\textbf{G} : (x, y, z, \theta, \phi) \to (x_0, y_0, z_0)$, tedy jako mapování pohledových paprsků na 3D souřadnice povrchu. Jako $\textbf{G}_0$ si označíme funkci skutečného povrchu, $\textbf{G}_A$  reprezentuje aproximovaný povrch (rekonstruovaný 3D model), viz obr. \ref{fig:projection-error}.
 
-[[Obrázek podobnej floating textures fig 2]]
+\begin{figure}[hb]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/projection-error}
+\label{fig:projection-error}
+\caption{(a) chyby v geometrii způsobují chybnou projekci, bod P na původní geometrii je promítnut na body $P_1$ a $P_2$ na aproximované geometrii. (b) chyby ve viditelnosti, bod P je chybně viditelný z kamery $C_2$ a naopak není viditelný z kamery $C_1$.}
+\end{center}
+\end{figure}
 
-Důležitým prvkem je matice kamery, která nám určuje projekční mapování 3D bodu $(x, y, z)$ do 2D souřadnic $(s, t)$ v $i$-té fotografii  $\textbf{P}_i: (x, y, z) \to (s, t)$, viz sekce \ref{sec:matice-kamery}.  Z promítnuté pozice v obrázku pak můžeme přiřadit 3D bodu barvu $\textbf{I}_i : (s, t) \to (r, g, b)$. Poté libovolný nový pohled $\textbf{I}^V$ z virtuální kamery $V$ můžeme vyjádřit pomocí rovnice \ref{eq:iview} \cite{floating-textures}.
+Důležitým prvkem je projekční matice kamery, která nám určuje projekční mapování 3D bodu $(x, y, z)$ do 2D souřadnic $(s, t)$ v $i$-té fotografii  $\textbf{P}_i: (x, y, z) \to (s, t)$, viz sekce \ref{sec:matice-kamery}.  Z promítnuté pozice v obrázku pak můžeme přiřadit 3D bodu barvu $\textbf{I}_i : (s, t) \to (r, g, b)$. Poté libovolný nový pohled $\textbf{I}^V$ z virtuální kamery $V$ můžeme vyjádřit pomocí rovnice \ref{eq:iview} \cite{floating-textures}.
 
 \begin{align}
 \label{eq:iview}
@@ -116,7 +122,7 @@ Důležitým prvkem je matice kamery, která nám určuje projekční mapování
 
 \noindent a $\sum_i \omega_i = 1$. Notace $ \textbf{I}_{i}^{V}$ značí vyrenderovaný obrázek z pohledu $V$ promítnutím vstupní fotografie  $\textbf{I}_{i}$ jako textury na povrch  $\textbf{G}_A$. $\delta_i$ určuje viditelnost a je 1, pokud je bod na povrchu $\textbf{G}_A$ viditelný v kameře $i$ a 0 pokud není. $w_i$ je funkce, která určuje váhu kamery $i$ pro každý paprsek.
 
-Zásadní problém spočívá v tom, že $\textbf{G}_A \neq \textbf{G}_0$, tedy již vstupní data \ref{eq:linear-comb-plen} jsou zatížena chybou. Dále díky chybám v kalibraci, $\textbf{P}_i$ není přesná, což přináší další chyby.
+Zásadní problém spočívá v tom, že $\textbf{G}_A \neq \textbf{G}_0$, tedy již vstupní data vztahu \ref{eq:linear-comb-plen} jsou zatížena chybou (obr. \ref{fig:projection-error}). Problémy přináší také nepřesná kalibrace kamery $\textbf{P}_i$, což způsobuje další nepřesnosti při mapování.
 
 
 \subsection{Matice kamery}
@@ -270,10 +276,6 @@ jsou velmi často nepřesné a snižují výslednou vizuální kvalitu.
 
 Plovoucí textury porušují epipolární geometrii, což umožňuje texturám
 kompenzovat nekvalitní kalibraci kamery a nepřesně zrekonstruované 3D modely.
-
-\section{Projektivní mapování fotografií}
-
-abc
 
 
 \renewcommand\refname{Zdroje}
