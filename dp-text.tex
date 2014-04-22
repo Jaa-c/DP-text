@@ -89,6 +89,8 @@ a větší množství (desítky až stovky) kalibrovaných fotografií z různý
 
 Syntéza textur z fotografií je poměrně složitá, protože 	na výsledný model se díváme i z jiných pohledů, než ze kterých byly pořízeny fotografie. Problémy, které při tomto procesu vznikají jsou popsány zejména v následující kapitole. Cílem této práce je vytvořit aplikaci, která v reálném čase mapuje fotografie na model. Protože aplikace funguje v reálném čase, může zohlednit aktuální pohled virtuální kamery a na základě pozice kamery vybrat nejvhodnější fotografie pro vytvoření textury. K tomu využívá velkého výkonu současných GPU.
 
+[[obrázek model s a bez textur TODO]]
+
 
 \chapter{Analýza problému a návrh řešení} %??
 
@@ -178,7 +180,7 @@ x = \textbf{P}\cdotp p_w
 Existuje několik základních metod, jak mapovat fotografie z více pohledů na
 model. Jednou z možností je projekce všech fotografií a jejich následné sloučení
 pomocí nějakého váženého průměru, jako např. v \cite{Bernardini01}.
-Nevýhody takové metody je zejména vznik artefaktů ve výsledné textuře, často se
+Nevýhodou takové metody je zejména vznik artefaktů ve výsledné textuře, často se
 projevuje tzv. ghosting, kdy se v textuře objeví několik kopií jednoho obrazce.
 Další variantou je vytvoření atlasu textur \cite{Allene08}, kdy každá část
 modelu dostane svojí texturu z unikátního pohledu. Tato varianta je využita
@@ -242,6 +244,8 @@ kvalitní. Další problém nastává, pokud je rozlišení fotografií vyšší
 rozlišení modelu (jeden vrchol se mapuje na více pixelů ve fotografiích), to
 vyžaduje další zpracování dat a zvyšuje složitost problému.
 
+
+
 Všechny tyto algoritmy mají společné to, že z původních pohledů předem vytvoří
 texturu či atlas textur spojením všech fotografií, přičemž se snaží
 minimalizovat vznik artefaktů nebo případně vzniklé artefakty odstraňovat.
@@ -264,7 +268,7 @@ pohledů a scéna je vyrenderována z aktuálního pohledu virtuální kamery $V
 vzniknou dočasné textury $I_i^V$. Poté je na jednotlivé páry textur $I_i^V$
 aplikován odhad optického toku, čímž vzniknou pole $W_{I_i^V \rightarrow
 I_j^V}$. Pro více než dvě vstupní fotografie je nutné provést lineární kombinaci
-vytvořených polí a sloučit je do výsledné textury $I^v_{Float}$.
+vytvořených polí a sloučit je do výsledné textury $I^v_{Float}$. To je poměrně náročná operace, pro n vstupních fotografií je nutné vytvořit $O(n^2)$ polí. S tím se vyrovnávají v článku tím, že používají pro každý pohled jen 3 nejbližší fotografie. Plovoucí textury porušují epipolární geometrii, což umožňuje texturám kompenzovat nekvalitní kalibraci kamery a nepřesně zrekonstruované 3D modely.
 
 Dále je nutné vypořádat se s vlastním zastíněním částí modelu, což je velmi
 běžná situace. K tomu je využita jemná mapa viditelnosti, která pro každý pixel
@@ -274,8 +278,11 @@ metoda, která nastavuje hodnotu z intervalu $(0,1)$ pixelům, které jsou blíz
 hranic zastínění. Tím jsou odstraněny ostré hrany podél zastíněných částí, které
 jsou velmi často nepřesné a snižují výslednou vizuální kvalitu.
 
-Plovoucí textury porušují epipolární geometrii, což umožňuje texturám
-kompenzovat nekvalitní kalibraci kamery a nepřesně zrekonstruované 3D modely.
+Na principu výběru nejlepší fotografie na základě aktuálního pohledu je založená metoda v článku \cite{Debevec96}. Při mapování jedné fotografie navrhují použití image-space stínových map pro řešení viditelnosti, protože to umožňuje efektivní implementaci pomocí z-bufferu. Při mapování více fotografií na model vybírají pro každý pixel vždy takovou fotografii, která se na daný povrch dívá pod nejlepším úhlem. To samozřejmě přináší viditelné švy, protože sousední pixely mohou pocházet z různých fotografií. Toto řeší zjemněním přechodů pomocí váženého průměru, váhu je určena podle rozdílu úhlu aktuálního pohledu a pohledu původní kamery. Dále pro lepší výsledky mají pixely na okraji fotografie menší váhu, čímž se snaží ještě více eliminovat vznik švů.
+
+Dále navrhují jednoduchý algoritmus pro odstranění nežádoucích objektů, které se mohou vyskytovat na zdrojových fotografiích - např. auto či chodci před budovou, kterou chceme otexturovat. Uživatel může ručně vymaskovat tyto objekty předem zvolenou barvou a tyto pixely dostanou při texturování nulovou váhu a budou použita data z jiné fotografie. Pokud nejsou dostupná žádná data, vyplňují vzniklé mezery pomocí syntézy obrazu.
+
+
 
 
 \renewcommand\refname{Zdroje}
