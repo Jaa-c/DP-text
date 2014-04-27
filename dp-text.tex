@@ -122,57 +122,9 @@ Důležitým prvkem je projekční matice kamery, která nám určuje projekčn�
  \omega_i &= \delta_i(\textbf{G}_A(x, y, z, \theta, \phi)) w_i(x, y, z, \theta, \phi)
 \end{align}
 
-\noindent a $\sum_i \omega_i = 1$. Notace $ \textbf{I}_{i}^{V}$ značí vyrenderovaný obrázek z pohledu $V$ promítnutím vstupní fotografie  $\textbf{I}_{i}$ jako textury na povrch  $\textbf{G}_A$. $\delta_i$ určuje viditelnost a je 1, pokud je bod na povrchu $\textbf{G}_A$ viditelný v kameře $i$ a 0 pokud není. $w_i$ je funkce, která určuje váhu kamery $i$ pro každý paprsek.
+\noindent a $\sum_i \omega_i = 1$. Notace $ \textbf{I}_{i}^{V}$ značí vyrenderovaný obrázek z pohledu $V$ promítnutím vstupní fotografie  $\textbf{I}_{i}$ jako textury na povrch  $\textbf{G}_A$. $\delta_i$ určuje viditelnost a je 1, pokud je bod na povrchu $\textbf{G}_A$ viditelný v kameře $i$ a 0 pokud není. $w_i$ je funkce, která určuje váhu kamery $i$ pro každý paprsek. Rovnice \ref{eq:iview} se snaží reprezentovat plenoptickou funkci jako lineární kombinaci promítnutých fotografií.
 
 Zásadní problém spočívá v tom, že $\textbf{G}_A \neq \textbf{G}_0$, tedy již vstupní data vztahu \ref{eq:linear-comb-plen} jsou zatížena chybou (obr. \ref{fig:projection-error}). Problémy přináší také nepřesná kalibrace kamery $\textbf{P}_i$, což způsobuje další nepřesnosti při mapování.
-
-
-\subsection{Matice kamery}
-\label{sec:matice-kamery}
-
-Nejběžněji se v počítačové grafice a vidění používá perspektivní projekce, která promítá 3D body $p$ na 2D body $x$ vydělením jejich $z$ souřadnicí \cite{Szeliski}. V homogeních souřadnicích má kanonická perspektivní matice \textbf{P}$_0$ jednoduchou formu:
-\begin{align}
-\label{eq:persp-projection}
-x = 
-\underbrace{
-\begin{bmatrix}
-1 & 0 & 0 & 0 \\
-0 & 1 & 0 & 0 \\
-0 & 0 & 1 & 0 \\
-\end{bmatrix}}_\text{\textbf{P}$_0$}
-p
-\end{align}
-\noindent
-
-Po promítnutí 3D bodu projekční kamerou je nutné transformovat souřadnice na základě vlastností senzoru a orientace kamery vzhledem k počátku souřadnicového systému.  \emph{Kalibrační matice} \textbf{K} transformuje kanonickou perspektivní kameru na standardní projekční kameru \textbf{P}: 
-\begin{align}
-\label{eq:calibration-matrix}
-\textbf{P} = 
-\begin{bmatrix}
-f & 0 & c_x  \\
-0 & f & c_y  \\
-0 & 0 & 1  \\
-\end{bmatrix}
-\cdot
-\begin{bmatrix}
-1 & 0 & 0 & 0 \\
-0 & 1 & 0 & 0 \\
-0 & 0 & 1 & 0 \\
-\end{bmatrix}
- =\textbf{K}\textbf{P}_0
-\end{align}
-\noindent
-kde $f$ je ohnisková vzdálenost v pixelech a bod $(c_x, c_y)$ je optický střed vyjádřený v pixelech. Toto je zjednodušená matice kamery \textbf{K}, která uvažuje senzor kolmý vůči optické ose a stejnou ohniskovou vzdálenost v osách $x$ a $y$ (což je v praxi nejběžnější varianta). Orientaci kamery vůči počátku souřadnicového systému definujeme pomocí $3\times3$ rotační kamery \textbf{R} a vektoru \textbf{t}, čímž získáme výslednou $3\times4$ \emph{matici kamery}:
-\begin{align} 
-\label{eq:calibration-matrix}
-\textbf{P} = \textbf{K}~[~\textbf{R}~|~\textbf{t}~]
-\end{align}
-\noindent
-která provádí mapování bodu $p_w$ v 3D světových souřadnicích do 2D souřadnic $x$ ve fotografii:
-\begin{align}
-x = \textbf{P}\cdotp p_w
-\end{align}
-
 
 \section{Související práce}
 \label{sec:related}
@@ -282,7 +234,76 @@ Na principu výběru nejlepší fotografie na základě aktuálního pohledu je 
 
 Dále navrhují jednoduchý algoritmus pro odstranění nežádoucích objektů, které se mohou vyskytovat na zdrojových fotografiích - např. auto či chodci před budovou, kterou chceme otexturovat. Uživatel může ručně vymaskovat tyto objekty předem zvolenou barvou a tyto pixely dostanou při texturování nulovou váhu a budou použita data z jiné fotografie. Pokud nejsou dostupná žádná data, vyplňují vzniklé mezery pomocí syntézy obrazu.
 
+\section{Návrh řešení}
 
+Algoritmus se skládá ze tří základních kroků - projekce jedné fotografie na model, výběr nejlepších fotografií a zajištění otexturování celého modelu.
+
+\subsection{Projekce fotografie na model}
+\label{sec:matice-kamery}
+
+Mapování jedné fotografie na model můžeme popsat jako projekci $P: (x, y, z) \to (s, t)$, tedy jako projekci 3D bodů modelu do 2D souřadnice ve fotografii, viz obr. \ref{fig:camera-projection}. Nejběžněji se v počítačové grafice a vidění používá perspektivní projekce, která promítá 3D body $p$ na 2D body $x$ vydělením jejich $z$ souřadnicí \cite{Szeliski}. V homogeních souřadnicích má kanonická perspektivní matice \textbf{P}$_0$ jednoduchou formu:
+\begin{align}
+\label{eq:persp-projection}
+x = 
+\underbrace{
+\begin{bmatrix}
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+\end{bmatrix}}_\text{\textbf{P}$_0$}
+p
+\end{align}
+\noindent
+
+\begin{figure}[t]
+\begin{center}
+\label{fig:camera-projection}
+\includegraphics[width=\textwidth]{figures/camera-projection}
+\caption{Obrázek znázorňuje situaci při projekci 3D bodu na 2D souřadnice.}
+\end{center}
+\end{figure}
+
+Po promítnutí 3D bodu projekční kamerou je nutné transformovat souřadnice na základě vlastností senzoru a orientace kamery vzhledem k počátku souřadnicového systému.  \emph{Kalibrační matice} \textbf{K} transformuje kanonickou perspektivní kameru na standardní projekční kameru \textbf{P}: 
+\begin{align}
+\label{eq:calibration-matrix}
+\textbf{P} = 
+\begin{bmatrix}
+f & 0 & c_x  \\
+0 & f & c_y  \\
+0 & 0 & 1  \\
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+\end{bmatrix}
+ =\textbf{K}\textbf{P}_0
+\end{align}
+\noindent
+kde $f$ je ohnisková vzdálenost v pixelech a bod $(c_x, c_y)$ je optický střed vyjádřený v pixelech, obr. \ref{fig:camera-projection}. Toto je zjednodušená matice kamery \textbf{K}, která uvažuje senzor kolmý vůči optické ose a stejnou ohniskovou vzdálenost v osách $x$ a $y$ (což je v praxi nejběžnější varianta). Orientaci kamery vůči počátku souřadnicového systému definujeme pomocí $3\times3$ rotační kamery \textbf{R} a vektoru \textbf{t}, čímž získáme výslednou $3\times4$ \emph{matici kamery}:
+\begin{align} 
+\label{eq:calibration-matrix}
+\textbf{P} = \textbf{K}~[~\textbf{R}~|~\textbf{t}~]
+\end{align}
+\noindent
+která provádí mapování bodu $p_w$ v 3D světových souřadnicích do 2D souřadnic $x$ ve fotografii:
+\begin{align}
+x = \textbf{P}\cdotp p_w
+\end{align}
+Existuje celá řada algoritmů pro nalezení matice kamery \cite{Hartley2004}, to ale není součástí této práce, kalibrované kamery jsou poskytnuté na vstupu společně s rekonstruovaným modelem a fotografiemi.
+
+Při mapování fotografie na model je nutné brát v úvahu, že některé části modelu mohou být vzhledem ke kameře zastíněné a nemohou být z dané kamery správně otexturovány. Toto se nejčastěji řeší pomocí stínových map \cite{Stamminger2002}, které se předem vytvoří pro každou kameru. Aby byla tato metoda kvalitní, musí mít stínové mapy dostatečné rozlišení.  Vzhledem k tomu, že aplikace bude využívat až stovky různých kamer, bylo by použití této metody paměťově velmi náročné.
+
+Další možností je použít algoritmus vrhání paprsků, kdy se z kamery vrhají na scénu paprsky a podle zásahů s modelem se určí, které fragmenty jsou z kamery viditelné. Tato metoda také není příliš vhodná, protože aplikace bude v reálném čase využívat až desítky různých kamer zároveň a vrhání dostatečného množství paprsků z každé kamery by bylo výpočetně příliš náročné. Proto se jako nejlepší varianta se jeví využít jednodušší algoritmus, který spoléhá na seřazení kamer podle podobnosti se směrem virtuální kamery. Kvůli velkému množství vstupních kamer se dá očekávat, že pro většinu možných pohledů virtuální kamery bude existovat kamera s velmi podobným pohledem. Pro takovou kameru bude existovat jen velmi malé množství oblastí, které budou z kamery zastíněné, ale z virtuální kamery budou viditelné. Při texturování se kamery seřadí od ``nejlepší'' a každá kamera bude využita k otexturování oblasti, která ještě není pokrytá předchozí kamerou. Tím se výrazně omezí oblasti, které jsou otexturovány zastíněnou kamerou, ale zároveň jsou viditelné z virtuální kamery. K tomuto pravidlu je navíc zaveden práh, který určuje minimální úhel mezi směrem kamery a normálou plochy, pro který může být daná plocha kamerou otexturována. 
+
+
+
+\chapter{Implementace}
+
+\chapter{Testování}
+
+\chapter{Závěr}
 
 
 \renewcommand\refname{Zdroje}
