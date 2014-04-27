@@ -101,8 +101,8 @@ Předpokládejme, že se díváme na statickou scénu s konstantním osvětlení
 \begin{figure}[hb]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/projection-error}
-\label{fig:projection-error}
 \caption{(a) chyby v geometrii způsobují chybnou projekci, bod P na původní geometrii je promítnut na body $P_1$ a $P_2$ na aproximované geometrii. (b) chyby ve viditelnosti, bod P je chybně viditelný z kamery $C_2$ a naopak není viditelný z kamery $C_1$.}
+\label{fig:projection-error}
 \end{center}
 \end{figure}
 
@@ -257,9 +257,9 @@ p
 
 \begin{figure}[t]
 \begin{center}
-\label{fig:camera-projection}
 \includegraphics[width=\textwidth]{figures/camera-projection}
 \caption{Obrázek znázorňuje situaci při projekci 3D bodu na 2D souřadnice.}
+\label{fig:camera-projection}
 \end{center}
 \end{figure}
 
@@ -283,7 +283,6 @@ f & 0 & c_x  \\
 \noindent
 kde $f$ je ohnisková vzdálenost v pixelech a bod $(c_x, c_y)$ je optický střed vyjádřený v pixelech, obr. \ref{fig:camera-projection}. Toto je zjednodušená matice kamery \textbf{K}, která uvažuje senzor kolmý vůči optické ose a stejnou ohniskovou vzdálenost v osách $x$ a $y$ (což je v praxi nejběžnější varianta). Orientaci kamery vůči počátku souřadnicového systému definujeme pomocí $3\times3$ rotační kamery \textbf{R} a vektoru \textbf{t}, čímž získáme výslednou $3\times4$ \emph{matici kamery}:
 \begin{align} 
-\label{eq:calibration-matrix}
 \textbf{P} = \textbf{K}~[~\textbf{R}~|~\textbf{t}~]
 \end{align}
 \noindent
@@ -298,6 +297,18 @@ Při mapování fotografie na model je nutné brát v úvahu, že některé čá
 Další možností je použít algoritmus vrhání paprsků, kdy se z kamery vrhají na scénu paprsky a podle zásahů s modelem se určí, které fragmenty jsou z kamery viditelné. Tato metoda také není příliš vhodná, protože aplikace bude v reálném čase využívat až desítky různých kamer zároveň a vrhání dostatečného množství paprsků z každé kamery by bylo výpočetně příliš náročné. Proto se jako nejlepší varianta se jeví využít jednodušší algoritmus, který spoléhá na seřazení kamer podle podobnosti se směrem virtuální kamery. Kvůli velkému množství vstupních kamer se dá očekávat, že pro většinu možných pohledů virtuální kamery bude existovat kamera s velmi podobným pohledem. Pro takovou kameru bude existovat jen velmi malé množství oblastí, které budou z kamery zastíněné, ale z virtuální kamery budou viditelné. Při texturování se kamery seřadí od ``nejlepší'' a každá kamera bude využita k otexturování oblasti, která ještě není pokrytá předchozí kamerou. Tím se výrazně omezí oblasti, které jsou otexturovány zastíněnou kamerou, ale zároveň jsou viditelné z virtuální kamery. K tomuto pravidlu je navíc zaveden práh, který určuje minimální úhel mezi směrem kamery a normálou plochy, pro který může být daná plocha kamerou otexturována. 
 
 
+\subsection{Projekce více fotografií na model}
+Téměř vždy nestačí k otexturování aktuálního pohledu pouze jedna fotografie. Proto je potřeba použít více fotografií pro vyrenderování modelu z nového pohledu. Na obrázku \ref{fig:dum-1} je zobrazen model s jednou a se dvěma namapovanými fotografiemi.  Při mapování více fotografií zároveň je nutné vyřešit dva základní problémy - které fotografie budou vybrány a jak bude fragment otexturován, pokud je jeho polohu možné promítnout do více kamer.
+
+\begin{figure}[bh]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/dum-1}
+\caption{Projekce jedné (a) a dvou (b) fotografií na 3D model.}
+\label{fig:dum-1}
+\end{center}
+\end{figure}
+
+Výběr fotografií je je prováděn na základě shody aktuálního pohledu virtuální kamery s pohledy vstupních kamer
 
 \chapter{Implementace}
 
