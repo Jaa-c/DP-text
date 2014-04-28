@@ -236,7 +236,7 @@ Dále navrhují jednoduchý algoritmus pro odstranění nežádoucích objektů,
 
 \section{Návrh řešení}
 
-Algoritmus se skládá ze tří základních kroků - projekce jedné fotografie na model, výběr nejlepších fotografií a zajištění otexturování celého modelu.
+Algoritmus se skládá ze tří základních kroků - projekce fotografií na model, výběr nejlepších fotografií pro pokrytí celého modelu a výběr nejvhodnějšího pixelu z více fotografií pro otexturování fragmentu.
 
 \subsection{Projekce fotografie na model}
 \label{sec:matice-kamery}
@@ -308,7 +308,15 @@ Téměř vždy nestačí k otexturování aktuálního pohledu pouze jedna fotog
 \end{center}
 \end{figure}
 
-Výběr fotografií je je prováděn na základě shody aktuálního pohledu virtuální kamery s pohledy vstupních kamer
+Výběr fotografií je je prováděn na základě shody aktuálního pohledu virtuální kamery s pohledy vstupních kamer. Pro porovnání je nutné určit, kterým směrem jsou kamery natočeny.  U vstupních kamer jde tento směr zjistit přímo z matice kamery a také je možné tento směr použít na základě předpokladu, že tyto kamery se obvykle dívají přímo na model. U virtuální kamery to tak jednoduché není. Pokud se díváme zvenku na model a otáčíme virtuální kamerou, vidíme model stále ze stejného směru a chceme, aby byl otexturován stejně. Proto není vhodné použít přímo směr, kterým se dívá virtuální kamera, ale spíše spojnici mezi pozicí kamery a modelem. Pro určení pozice modelu je použit centroid všech vrcholů. Odlišná situace nastává, pokud se virtuální kamera nachází uvnitř modelu. V tomto případě naopak musíme brát v úvahu přímo směr pohledu virtuální kamery, protože při otočení kamery vidíme jinou část modelu. K jednoduchému určení, zda je kamera uvnitř nebo vně modelu je možné použít osově zarovnaný ohraničující kvádr (AABB).
+
+Po vypočtení směru pohledu vybereme nejlepší fotografie porovnáním se směry všech vstupních kamer. Počet fotografií potřebných k otexturování je závislý na složitosti scény a i na samotných fotografiích, proto se tato hodnota nenastavuje automaticky, ale uživatel jí musí zadat na vstupu.
+
+Pro otexturování modelu často nestačí vybrat pouze fotografie, které nejlépe odpovídají aktuálnímu pohledu. Takové fotografie dobře pokryjí plochy, které jsou na aktuální pohled přibližně kolmé. Oproti tomu velmi špatně pokryjí plochy, které jsou téměř paralelní se směrem aktuálního pohledu, ale zároveň jsou ještě dobře viditelné \ref{} TODO OBRÁZEK.
+
+
+
+
 
 \chapter{Implementace}
 
