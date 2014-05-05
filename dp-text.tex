@@ -298,6 +298,8 @@ Další možností je použít algoritmus vrhání paprsků, kdy se z kamery vrh
 
 
 \subsection{Výběr vhodných fotografií pro otexturování modelu}
+\label{sec:photo-choosing}
+
 Téměř vždy nestačí k otexturování aktuálního pohledu pouze jedna fotografie. Proto je potřeba použít více fotografií pro vyrenderování modelu z nového pohledu. Na obrázku \ref{fig:dum-1} je zobrazen model s jednou a se dvěma namapovanými fotografiemi.  Při mapování více fotografií zároveň je nutné vyřešit dva základní problémy - které fotografie budou vybrány a jak bude fragment otexturován, pokud je jeho polohu možné promítnout do více kamer.
 
 \begin{figure}[bh]
@@ -329,24 +331,34 @@ Pro otexturování modelu často nestačí vybrat pouze fotografie, které nejl�
 \begin{figure}[th]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/faces-no-tex}
-\caption{(a) model otexturovaný šesti fotografiemi z kamer, které nejlépe odpovídají pohledu virtuální kamery. Červeně jsou zvýrazněny plochy, které nejde z kamer kvalitně otexturovat. (b) vyrenderovaná textura s uloženými normálami v prvním průchodu algoritmu ze stejného pohleduj jaklo (a).}
+\caption{(a) Model otexturovaný šesti fotografiemi z kamer, které nejlépe odpovídají pohledu virtuální kamery. Červeně jsou zvýrazněny plochy, které nejde z kamer kvalitně otexturovat. (b) Vyrenderovaná textura s uloženými normálami v prvním průchodu algoritmu ze stejného pohleduj jaklo (a).}
 \label{fig:faces-no-tex}
 \end{center}
 \end{figure}
 
 K efektivnímu nalezení těchto ploch navrhujeme dvou průchodový algoritmus. Nejprve se vybere daný počet fotografií, které nejlépe odpovídají aktuálnímu pohledu. Poté se v prvním průchodu model vykreslí a zjistí se, které plochy je s daným prahem možné z vybraných fotografií otexturovat. Pokud fragment není možné pokrýt žádnou fotografií, vykreslí se do textury aktuální normála. V prvním průchodu tedy vznikne textura, která obsahuje normály ploch, které je nutné pokrýt, obr. \ref{fig:faces-no-tex} (b). Poté je provedeno klastrování těchto normál a jsou určeny nejvýznamnější směry. Tento přístup je vhodný, protože klastrování jde efektivně provést na GPU bez nutnosti přenosu velkého množství dat mezi GPU a CPU. Poté se vyberou nové fotografie, které nejlépe odpovídají nalezeným směrům (kamery, jejichž směr pohledu je opačný k nalezeným normálám). V druhém průchodu se poté provede výsledný rendering. 
 
-Aby nedocházelo ke špatnému otexturování, nejprve jsou použity pouze původní fotografie, stejně jako v prvním průchodu. Až poté se použijí nově nalezené fotografie, které doplní textury pouze na neotexturované fragmenty. Tímto se preferují fotografie, které nejlépe odpovídají aktuálnímu pohledu a omezí se případné otexturování ploch, které jsou z nově nalezených kamer zastíněné.
-
-
 \subsection{Texturování z více fotografií}
 \label{sec:fragment-texturing}
-Během renderingu je nutné vyřešit, jak budou otexturovány fragmenty, pro které je možné použít data z více fotografií.
+Během renderingu je nutné vyřešit, jak budou otexturovány fragmenty, pro které je možné použít data z více fotografií. Princip je velmi podobný, jako při výběru fotografií, ale snahou při texturování je také omezení vzniku švů a omezení chybného otexturování zastíněných oblastí. Během texturování se již používají pouze fotografie, které byly vybrány v předchozím kroku.
 
-vážený shéma, otexturvání fragmentů, obrázek, inspirovat debevec
+Pro každou fotografii je vypočtena váha, fotografie s nejvyšší váhou je použita pro otexturování. Jeden fragment je otexturován pouze z jedné fotografie, není použito žádné vážené míchání barev z více fotografií. To vede k tomu, že dva sousední pixely mohou být vybrány z různých fotografií a tím mohou vznikat viditelné švy. Vážené míchání barev, jako např. v \cite{Debevec96} vede k rozmazání textur a na testovacích datech k vizuálně horšímu výsledku. 
 
-obrázek - > ukázat jak to vypadá, když se plocha otexturuje nevhodnou fotkou levá strana červená, pravá otexturovaná špatně s detailem.
+Váha $w_i$ $i$-té fotografie je složena z několika faktorů. V úvahu je brána shoda směru kamery $d_c$ se směrem virtuální kamery $d_v$, stejně jako při výběru fotografií. Dále se uvažuje úhel mezi směrem kamery a normálou plochy $N_f$. Tím se preferují kamery s co nejvíce kolmým pohledem na danou plochu a zároveň je pravděpodobnější, že celá plocha bude otexturována z jedné fotografie. Nakonec je do výpočtu zahrnuta  velikost plochy $s_i$, kterou na fotografii zabírá model, viz výpočet konvexní obálky v sekci \ref{sec:photo-choosing}. Celkový výpočet váhy shrnuje následující rovnice:
 
+\begin{align}
+\label{eq:weight-scheme}
+w_i &= dot(d_v, d_c) \times \left(\frac{1 + dot(-N_f, d_c)}{1 - cos(\alpha)} + 1\right) \times s_i \times \delta(i)\\
+\delta(i) &= \left\{
+  \begin{array}{l l}
+    1 & \quad \text{pokud~$\exists P_i:(x, y, z) \to (s, t)$}\\
+    0 & \quad \text{v opačném případě}
+  \end{array} \right.
+\end{align}
+
+\noindent kde $dot$ značí skalární součin dvou vektorů a $\alpha$ je limitní úhel, který určuje, zda je plochu možné z dané kamery otexturovat.
+
+Musíme brát v úvahu, že máme dvě rozdílné množiny fotografií. Nejprve jsme vybrali fotografie, které nejlépe odpovídají aktuálnímu pohledu. Poté jsme nalezli doplňující fotografie, které pokryjí zbývající plochy. Proto musí rendering probíhat ve dvou částech. Nejprve se aplikuje původní množina fotografií. Až poté se použijí doplňující fotografie, které mohou otexturovat pouze fragmenty, které se nepodařilo otexturovat v první části. Tímto se jednak preferují fotografie blízké aktuálnímu pohledu a zároveň se omezí  případné chyby, kdy by doplňující fotografie mohly otexturovat plochy, které jsou z jejich pohledu zastíněné. K tomu i tak může dojít, ale pouze ve velmi omezených částech výsledného renderu.
 
 
 
