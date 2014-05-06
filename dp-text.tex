@@ -1,7 +1,7 @@
 \documentclass[11pt,twoside,a4paper]{book}
 
 \usepackage[czech, english]{babel}
- \usepackage[OT1]{fontenc} % pouzije EC fonty
+\usepackage[OT1]{fontenc} % pouzije EC fonty
 \usepackage[utf8]{inputenc}
 \usepackage{lmodern}
 \usepackage{graphicx}
@@ -12,9 +12,9 @@
 \usepackage{hyperref}
 \hypersetup{
     bookmarks=true,         % show bookmarks bar?
-    unicode=true,			% non-Latin characters in Acrobat’s bookmark
+    unicode=true,		% non-Latin characters in Acrobat’s bookmark
     colorlinks=true,       	% false: boxed links; true: colored links
-    linkcolor=blue,			% color of internal links (change box color with linkbordercolor)
+    linkcolor=blue,		% color of internal links (change box color with linkbordercolor)
     citecolor=blue,        	% color of links to bibliography
 }
 
@@ -38,7 +38,6 @@ David Sedláček, Ph.D.}
 
 
 \let\oldUrl\url \renewcommand\url[1]{<\texttt{\oldUrl{#1}}>}
-
 
 \begin{document}
 \selectlanguage{czech} 
@@ -358,12 +357,55 @@ w_i &= dot(d_v, d_c) \times \left(\frac{1 + dot(-N_f, d_c)}{1 - cos(\alpha)} + 1
 
 \noindent kde $dot$ značí skalární součin dvou vektorů a $\alpha$ je limitní úhel, který určuje, zda je plochu možné z dané kamery otexturovat.
 
-Musíme brát v úvahu, že máme dvě rozdílné množiny fotografií. Nejprve jsme vybrali fotografie, které nejlépe odpovídají aktuálnímu pohledu. Poté jsme nalezli doplňující fotografie, které pokryjí zbývající plochy. Proto musí rendering probíhat ve dvou částech. Nejprve se aplikuje původní množina fotografií. Až poté se použijí doplňující fotografie, které mohou otexturovat pouze fragmenty, které se nepodařilo otexturovat v první části. Tímto se jednak preferují fotografie blízké aktuálnímu pohledu a zároveň se omezí  případné chyby, kdy by doplňující fotografie mohly otexturovat plochy, které jsou z jejich pohledu zastíněné. K tomu i tak může dojít, ale pouze ve velmi omezených částech výsledného renderu.
-
-
+Musíme brát v úvahu, že máme dvě rozdílné množiny fotografií. Nejprve jsme vybrali fotografie, které nejlépe odpovídají aktuálnímu pohledu. Poté jsme nalezli doplňující fotografie, které pokryjí zbývající plochy. Proto musí rendering probíhat ve dvou částech. Nejprve se aplikuje původní množina fotografií. Až poté se použijí doplňující fotografie, které mohou otexturovat pouze fragmenty, které se nepodařilo otexturovat v první části. Tímto se jednak preferují fotografie blízké aktuálnímu pohledu a zároveň se omezí situace, kdy by doplňující fotografie mohly chybně otexturovat plochy, které jsou z jejich pohledu zastíněné. K tomu i tak může dojít, ale pouze ve velmi omezených částech výsledného renderu, vizuálně to tedy nebude příliš výrazné. 
 
 
 \chapter{Implementace}
+
+\section{Použité technologie a knihovny}
+Aplikace je implementována v ANSI C++11 a je možné ji přeložit v linuxových operačních systémech i v MS Windows. Základ aplikace je postaven na multiplatformní knihovně Qt 4.8. Qt je jedna z nejrozšířenějších knihoven pro tvorbu aplikací s grafickým rozhraním (GUI), ale poskytuje i další podpůrné moduly, které s grafickým rozhraním přímo nesouvisí. Kromě tvorby GUI je Qt využito pro načítání vstupů z periférií a pro správu vláken. Pro efektivní zobrazování 3D grafiky je využito OpenGL, které poskytuje API pro rendering a výpočty na grafickém procesoru (GPU). Společně s OpenGL je použit jazyk GLSL, který slouží k tvorbě tzv. shaderů. To jsou samostatné programy, které se spouští na grafické kartě a řídí jednotlivé části programovatelného zobrazovacího řetězce. Pro běh aplikace je nutná grafická karta podporující OpenGL 4.0, což je jakákoliv novější grafická karta. Část programu využívá OpenGL 4.3, ale pro základní funkčnost aplikace není tato verze vyžadována. 
+
+Společně s OpenGL je využita knihovna GLEW 1.9, která slouží k načítání OpenGL rozšíření. S OpenGL je také úzce spjatá knihovna GLM, která poskytuje matematické operace běžně používané v počítačové grafice. Knihovna poskytuje základní datové struktury jako jsou vektory a matice a různé algebraické operace s těmito strukturami. Další použité knihovny jsou libjpeg 8 pro efektivní načítání obrázku ve formátu JPG a Assimp 3 pro načítání 3D modelů ve velkém množství formátů. Všechny využité knihovny jsou dostupné pod otevřenou licencí.
+glm
+
+\section{Architektura aplikace}
+
+Architektura aplikace zobrazující 3D grafiku v reálném čase se liší od běžných desktopových aplikací. Základem je efektivně využít zobrazovací řetězec, který OpenGL poskytuje, a zajistit distribuci dat mezi aplikací a grafickou kartou tak, aby byly omezeny přenosy dat mezi CPU a GPU, které jsou velmi drahé. Zároveň je důležité, aby všechny zobrazovací průchody měly přístup k aktuálním datům potřebným pro rendering. Samotné OpenGL je možné popsat jako data-driven architekturu, nicméně aplikace využívá tradičního objektového návrhu.  Zjednodušený návrh architektury aplikace je zobrazený na obrázku \ref{fig:architecture}.
+
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/architecture}
+\caption{Diagram ilustrující komunikaci základních komponent v aplikaci.}
+\label{fig:architecture}
+\end{center}
+\end{figure}
+
+Základem aplikace je třída \texttt{MainWindow}, která se stará o všechny komponenty GUI. Obsahuje aplikační menu a stará se o otevírání dialogových oken s nastavením programu. Jako centrální widget obsahuje třídu \texttt{GLWidget}, která má na starost zobrazování dat vykreslených pomocí OpenGL. Třída obsahuje metodu \texttt{paintGL}, která slouží jako hlavní smyčka, ve které se překresluje scéna. Zároveň se také třída  stará o vytvoření nové scény a inicializuje načtení vstupních dat.
+
+
+\section{Načítání vstupních dat}
+
+Aplikace na vstupu očekává 3D model a kalibrované fotografie. O načítání 3D modelu se stará třída \texttt{DataLoader} za pomoci knihovny Assimp. O načtení kalibrovaných fotografií se stará třída \texttt{CalibrationLoader}. Ta na základě zvoleného formátu vybírá parser pro načtení konfiguračních souborů s daty a stará se o přiřazení správných fotografií k načteným kamerám. Aplikace v současnosti podporuje dva formáty kalibrovaných dat:
+\begin{itemize}
+\item Bundler - výstupní soubor *.out z rekonstrukčního programu Bundler.
+\item REALVIZ Ascii Camera - soubor *.rz3 s kalibračními daty a textový soubor, který k datům z rz3 souboru přiřazuje názvy fotografií.
+\end{itemize}
+
+Vstupní fotografie jsou očekávány v nejběžnějším formátu JPG. Tento formát je však nevhodný pro textury, protože je komprimovaný, jeho načítání je netriviální a je příliš pomalé. To by ani nebyl takový problém, pokud bychom fotografie načítali pouze jednou při spuštění aplikace. Problém je v tom, že fotografie mohou mít velké rozlišení a může jich být velké množství. Během testování byly použity scény s několika stovkami fotografií v rozlišení $4094\times4096$px. Takové množství fotografií v nekomprimovaném formátu zabere až desítky GB paměti. Nemůžeme proto očekávat, že je možné nahrát všechny fotografie do RAM a bude je nutné za běhu načítat z pevného disku. Z toho důvodu jsou při prvním načtení scény všechny fotografie načteny z původních JPG souborů a na disk se uloží každá fotografie také v nekomprimovaném formátu RAW. Při každém dalším spuštění se používají již nekomprimovaná data. Toto má nevýhodou v tom, že je nutné mít na disku dostatečné množství místa pro nekomprimovaná data. Nicméně pro běh aplikace v reálném čase je toto nezbytné.
+
+Bohužel ani vytvoření RAW souborů není dostatečné pro načítání fotografií v reálném čase. Fotografie o rozměrech $4094\times4096$px má v nekomprimovaném formátu velikost přibližně 45MB. Moderní HDD jsou schopné číst data rychlostí přibližně 150MB/s, to znamená, že načtení fotografie z HDD bute trvat minimálně 0.3 sec. I když budeme uvažovat moderní SSD disky s rychlostí čtení přes 500MB/s, bude trvat načtení fotografie do RAM téměř 90ms. To je samozřejmě naprosto nepoužitelné pro zobrazování v reálném čase, kdy při 30 fps je nutné vyrenderovat celý snímek za 33ms.
+
+Jako řešení se nabízí možnost předem načítat omezené množství fotografií, které se vejde do RAM, aby fotografie byla vždy již načtená ve chvíli, kdy je jí třeba použít. Toto jsme implementovali za pomoci kd-stromu, kdy se načítaly fotografie nejbližší k aktuální pozici. Toto řešení se ukázalo velmi neefektivní, protože nebylo možné načítat dostatečné množství fotografií pro pokrytí všech možných směrů pohybu kamery. Ve výsledku byl procesor vytížený neustálým načítáním fotografií a aplikace byla nepoužitelná. Proto jsme zvolili jiný přístup. Pro každou fotografii jsou vytvořeny náhledy o velikosti šířce 512px. Tyto náhledy je již snadno možné nahrát všechny do RAM. Při texturování se poté využívají náhledy a originální fotografie je načtena pouze v případě, kdy je opravdu použita. To vede ke snížení kvality textur při změně pohledu virtuální kamery, ale pokud se pohled virtuální kamery příliš nemění, textury v plném rozlišení se načtou poměrně rychle (konkrétní hodnoty jsou uvedeny v kapitole testování v sekci TODO).
+
+
+
+-
+
+promítnutí bodů do fotek, konvexní obálka, úprava úhlu
+
+
+
 
 \chapter{Testování}
 
@@ -388,10 +430,10 @@ Musíme brát v úvahu, že máme dvě rozdílné množiny fotografií. Nejprve 
 \end{description}
 \vdots
 
-%*****************************************************************************
 \chapter{Instalační a uživatelská příručka}
+\subsection{Překlad aplikace}
+\subsection{Používání aplikace}
 
-%*****************************************************************************
 \chapter{Obsah přiloženého CD}
 
 
