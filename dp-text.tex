@@ -20,6 +20,36 @@
 
 \usepackage[square, numbers]{natbib}             % sazba pouzite literatury
 
+\usepackage{listings}
+\usepackage{courier}
+\lstset{
+	language=C++,
+	frame=single,
+	basicstyle=\footnotesize\ttfamily,
+	commentstyle=\color{gray},
+	keywordstyle=\color{blue},
+	stringstyle=\color{BurntOrange},
+	numbers=left,
+	captionpos=b,
+	numberstyle=\tiny\ttfamily,
+	%stepnumber=2,
+	numbersep=5pt,
+	tabsize=2,
+	showstringspaces=false,
+	extendedchars=true,
+	breaklines=true,
+	frame=tb,
+	xleftmargin=17pt,
+	framexleftmargin=17pt,
+	framexrightmargin=5pt,
+	framexbottommargin=4pt,
+}
+\renewcommand*\lstlistingname{Zdrojový kód}
+\usepackage{color}
+\usepackage[usenames,dvipsnames]{xcolor}
+
+\usepackage{textcomp}
+
 
 \newcommand\Department{Katedra počítačů}
 \newcommand\Faculty{Fakulta elektrotechnická}
@@ -176,7 +206,7 @@ metriky jsou následující:
   \item Hloubková metrika - váha pixelu je větší, pokud je povrch blíže ke 
   		kameře.
   \item Hraniční metrika - tato maska udává, jak daleko je pixel od okrajů 
-  		fotografie a silulety v hloubkové mapě. Čím dále je pixel od okrajů, 
+  		fotografie a siluety v hloubkové mapě. Čím dále je pixel od okrajů, 
   		tím je jeho kvalita lepší.
 \end{itemize}
 Výsledná váha pixelu je získána vynásobením hodnot v jednotlivých maskách. Tím 
@@ -362,6 +392,10 @@ Musíme brát v úvahu, že máme dvě rozdílné množiny fotografií. Nejprve 
 
 \chapter{Implementace}
 
+\section{Požadavky na implementaci}
+
+TODO
+
 \section{Použité technologie a knihovny}
 Aplikace je implementována v ANSI C++11 a je možné ji přeložit v linuxových operačních systémech i v MS Windows. Základ aplikace je postaven na multiplatformní knihovně Qt 4.8. Qt je jedna z nejrozšířenějších knihoven pro tvorbu aplikací s grafickým rozhraním (GUI), ale poskytuje i další podpůrné moduly, které s grafickým rozhraním přímo nesouvisí. Kromě tvorby GUI je Qt využito pro načítání vstupů z periférií a pro správu vláken. Pro efektivní zobrazování 3D grafiky je využito OpenGL, které poskytuje API pro rendering a výpočty na grafickém procesoru (GPU). Společně s OpenGL je použit jazyk GLSL, který slouží k tvorbě tzv. shaderů. To jsou samostatné programy, které se spouští na grafické kartě a řídí jednotlivé části programovatelného zobrazovacího řetězce. Pro běh aplikace je nutná grafická karta podporující OpenGL 4.0, což je jakákoliv novější grafická karta. Část programu využívá OpenGL 4.3, ale pro základní funkčnost aplikace není tato verze vyžadována. 
 
@@ -372,19 +406,18 @@ glm
 
 Architektura aplikace zobrazující 3D grafiku v reálném čase se liší od běžných desktopových aplikací. Základem je efektivně využít zobrazovací řetězec, který OpenGL poskytuje, a zajistit distribuci dat mezi aplikací a grafickou kartou tak, aby byly omezeny přenosy dat mezi CPU a GPU, které jsou velmi drahé. Zároveň je důležité, aby všechny zobrazovací průchody měly přístup k aktuálním datům potřebným pro rendering. Samotné OpenGL je možné popsat jako data-driven architekturu, nicméně aplikace využívá tradičního objektového návrhu.  Zjednodušený návrh architektury aplikace je zobrazený na obrázku \ref{fig:architecture}.
 
-
 \begin{figure}[ht]
 \begin{center}
-\includegraphics[width=\textwidth]{figures/architecture}
+\includegraphics[width=\textwidth]{figures/architecture2}
 \caption{Diagram ilustrující komunikaci základních komponent v aplikaci.}
 \label{fig:architecture}
 \end{center}
 \end{figure}
 
-Základem aplikace je třída \texttt{MainWindow}, která se stará o všechny komponenty GUI. Obsahuje aplikační menu a stará se o otevírání dialogových oken s nastavením programu. Jako centrální widget obsahuje třídu \texttt{GLWidget}, která má na starost zobrazování dat vykreslených pomocí OpenGL. Třída obsahuje metodu \texttt{paintGL}, která slouží jako hlavní smyčka, ve které se překresluje scéna. Zároveň se také třída  stará o vytvoření nové scény a inicializuje načtení vstupních dat.
+Základem aplikace je třída \texttt{MainWindow}, která se stará o všechny komponenty GUI. Obsahuje aplikační menu a stará se o otevírání dialogových oken s nastavením programu. Jako centrální widget obsahuje třídu \texttt{GLWidget}, která má na starost zobrazování dat vykreslených pomocí OpenGL. Třída obsahuje metodu \texttt{paintGL}, která slouží jako hlavní smyčka, ve které se překresluje scéna. Zároveň se také třída  stará o vytvoření nové scény a inicializuje načtení vstupních dat. Design a používání GUI je detailněji popsáno v příloze \ref{chap:install}.
 
 
-\section{Načítání vstupních dat}
+\section{Načítání a zpracování vstupních dat}
 
 Aplikace na vstupu očekává 3D model a kalibrované fotografie. O načítání 3D modelu se stará třída \texttt{DataLoader} za pomoci knihovny Assimp. O načtení kalibrovaných fotografií se stará třída \texttt{CalibrationLoader}. Ta na základě zvoleného formátu vybírá parser pro načtení konfiguračních souborů s daty a stará se o přiřazení správných fotografií k načteným kamerám. Aplikace v současnosti podporuje dva formáty kalibrovaných dat:
 \begin{itemize}
@@ -392,17 +425,105 @@ Aplikace na vstupu očekává 3D model a kalibrované fotografie. O načítání
 \item REALVIZ Ascii Camera - soubor *.rz3 s kalibračními daty a textový soubor, který k datům z rz3 souboru přiřazuje názvy fotografií.
 \end{itemize}
 
-Vstupní fotografie jsou očekávány v nejběžnějším formátu JPG. Tento formát je však nevhodný pro textury, protože je komprimovaný, jeho načítání je netriviální a je příliš pomalé. To by ani nebyl takový problém, pokud bychom fotografie načítali pouze jednou při spuštění aplikace. Problém je v tom, že fotografie mohou mít velké rozlišení a může jich být velké množství. Během testování byly použity scény s několika stovkami fotografií v rozlišení $4094\times4096$px. Takové množství fotografií v nekomprimovaném formátu zabere až desítky GB paměti. Nemůžeme proto očekávat, že je možné nahrát všechny fotografie do RAM a bude je nutné za běhu načítat z pevného disku. Z toho důvodu jsou při prvním načtení scény všechny fotografie načteny z původních JPG souborů a na disk se uloží každá fotografie také v nekomprimovaném formátu RAW. Při každém dalším spuštění se používají již nekomprimovaná data. Toto má nevýhodou v tom, že je nutné mít na disku dostatečné množství místa pro nekomprimovaná data. Nicméně pro běh aplikace v reálném čase je toto nezbytné.
+Po načtení kalibrovaných fotografií dochází ke korekci pohledových směrů kamer. Vrcholy modelu jsou projekční maticí promítnuty do souřadnic ve fotografii. Z bodů, které leží uvnitř fotografie se vytvoří konvexní obálka pomocí Grahamova algoritmu \cite{Andrew79}.  Tento algoritmus má optimální asymptotickou složitost $O(n~log(n))$. Základem algoritmu je setřídění bodů podle souřadnice x, po setřídění je potřeba již pouze jeden průchod bodů se složitostí $O(n)$. Algoritmus začne s dvěma body s nejnižší x-ovou souřadnicí. Poté postupně prochází seřazené body a zjišťuje se, zda je vybraný bod nalevo nebo napravo od přímky, která prochází předchozí dvojicí vrcholů. Pokud je nalevo, druhý bod z dvojice nemůže ležet na konvexní obálce a je nahrazen nově nalezeným bodem. Tento proces pokračuje, dokud existuje bod nalevo od posledních dvou bodů na dočasné konvexní obálce. Algoritmus je možné snadno implementovat pomocí zásobníku. Body na dočasně nalezené konvexní obálce se vkládají na vrchol zásobníku. Pokud je nalezen bod vlevo od posledních dvou na zásobníku, odebírají se body ze zásobníku, dokud toto pravidlo opět neplatí. Poté se do zásobníku vloží nově nalezený bod a algoritmus pokračuje.
 
-Bohužel ani vytvoření RAW souborů není dostatečné pro načítání fotografií v reálném čase. Fotografie o rozměrech $4094\times4096$px má v nekomprimovaném formátu velikost přibližně 45MB. Moderní HDD jsou schopné číst data rychlostí přibližně 150MB/s, to znamená, že načtení fotografie z HDD bute trvat minimálně 0.3 sec. I když budeme uvažovat moderní SSD disky s rychlostí čtení přes 500MB/s, bude trvat načtení fotografie do RAM téměř 90ms. To je samozřejmě naprosto nepoužitelné pro zobrazování v reálném čase, kdy při 30 fps je nutné vyrenderovat celý snímek za 33ms.
+Po nalezení konvexní obálky je vypočítán centroid bodů na konvexní obálce. Pohledový vektor kamery je poté určen jako vektor procházející středem kamery a nalezeným centroidem. Zároveň je vypočtena plocha konvexní obálky pro pozdější použití při výpočtu váhy textury. Plochu lze snadno spočítat jako jednu polovinu determinantu matic, kde $n$ bodů na konvexní obálce je zapsáno do řádků matice a první bod se opakuje na konci, viz vztah \ref{eq:size}. Body musí být seřazené proti směru hodinových ručiček, což jde snadno zařídit již během Grahamova algoritmu. Po načtení kalibrací kamer následuje načtení samotných fotografií.
 
-Jako řešení se nabízí možnost předem načítat omezené množství fotografií, které se vejde do RAM, aby fotografie byla vždy již načtená ve chvíli, kdy je jí třeba použít. Toto jsme implementovali za pomoci kd-stromu, kdy se načítaly fotografie nejbližší k aktuální pozici. Toto řešení se ukázalo velmi neefektivní, protože nebylo možné načítat dostatečné množství fotografií pro pokrytí všech možných směrů pohybu kamery. Ve výsledku byl procesor vytížený neustálým načítáním fotografií a aplikace byla nepoužitelná. Proto jsme zvolili jiný přístup. Pro každou fotografii jsou vytvořeny náhledy o velikosti šířce 512px. Tyto náhledy je již snadno možné nahrát všechny do RAM. Při texturování se poté využívají náhledy a originální fotografie je načtena pouze v případě, kdy je opravdu použita. To vede ke snížení kvality textur při změně pohledu virtuální kamery, ale pokud se pohled virtuální kamery příliš nemění, textury v plném rozlišení se načtou poměrně rychle (konkrétní hodnoty jsou uvedeny v kapitole testování v sekci TODO).
+\begin{align}
+\label{eq:size}
+s_i = \frac{1}{2} 
+\begin{vmatrix}
+x_1 & y_1 \\
+x_2 & y_2 \\
+\vdots & \vdots \\
+x_n & y_n \\
+x_1 & y_1 \\
+\end{vmatrix}
+= \frac{1}{2} [(x_1 y_2 + x_2 y_3 + \ldots + x_n y_1) - (y_1 x_2 + y_2 x_3 + \ldots + y_n x_1)]
+\end{align}
+
+Vstupní fotografie jsou dodány v nejběžnějším formátu JPEG. Tento formát je však nevhodný pro textury, protože je komprimovaný, jeho načítání je netriviální a příliš pomalé. To by ani nebyl takový problém, pokud bychom fotografie načítali pouze jednou při spuštění aplikace. Problém je v tom, že fotografie mohou mít velké rozlišení a může jich být velké množství. Během testování byly použity scény s několika stovkami fotografií v rozlišení $4094\times4096$px. Takové množství fotografií v nekomprimovaném formátu zabere až desítky GB paměti. Nemůžeme proto očekávat, že je možné nahrát všechny fotografie do RAM a bude je nutné za běhu načítat z pevného disku. Z toho důvodu jsou při prvním načtení scény všechny fotografie načteny z původních JPG souborů a na disk se uloží každá fotografie také v nekomprimovaném formátu RAW. Při každém dalším spuštění se používají již nekomprimovaná data. Toto má nevýhodou v tom, že je nutné mít na disku dostatečné množství místa pro nekomprimovaná data. Nicméně pro běh aplikace v reálném čase je toto nezbytné.
+
+Bohužel ani vytvoření RAW souborů není dostatečné pro načítání fotografií v reálném čase. Fotografie o v rozlišení 16MPx má v nekomprimovaném formátu velikost přibližně 45MB. Moderní HDD jsou schopné číst data rychlostí přibližně 150MB/s \cite{hdd}, to znamená, že načtení fotografie z HDD bude trvat minimálně 0.3 sec. I když budeme uvažovat moderní SSD disky s rychlostí čtení přes 500MB/s \cite{ssd}, bude trvat načtení fotografie do RAM téměř 90ms. To je samozřejmě naprosto nepoužitelné pro zobrazování v reálném čase, kdy při 30 fps je nutné vyrenderovat celý snímek za 33ms.
+
+Jako řešení se nabízí možnost předem načítat omezené množství fotografií, které se vejde do RAM, aby fotografie byla vždy již načtená ve chvíli, kdy je jí třeba použít. Toto jsme implementovali za pomoci kd-stromu, kdy se načítaly fotografie nejbližší k aktuální pozici. Toto řešení se ukázalo velmi neefektivní, protože nebylo možné načítat dostatečné množství fotografií pro pokrytí všech možných směrů pohybu kamery. Ve výsledku byl procesor vytížený neustálým načítáním fotografií a aplikace byla nepoužitelná. Proto jsme zvolili jiný přístup. Pro každou fotografii jsou vytvořeny náhledy o velikosti šířce 512px. Tyto náhledy je již možné nahrát do RAM pro všechny vstupní fotografie. Při texturování se poté využívají náhledy a originální fotografie je načtena pouze v případě, kdy je opravdu použita. To vede ke snížení kvality textur při změně pohledu virtuální kamery, ale pokud se pohled virtuální kamery příliš nemění, textury v plném rozlišení se načtou poměrně rychle (konkrétní hodnoty jsou uvedeny v kapitole testování v sekci TODO).
+
+O načítání fotografií se stará třída \texttt{TextureHandler}. Tato třída má primárně za úkol vybírat správné fotografie pro texturování. Při výběru jsou nejprve seřazeny fotografie podle shody s aktuálním pohledem a poté jsou vybrány fotografie s největší shodou. Shoda úhlů je počítána jednoduše pomocí skalárního součinu vektorů, který pro normalizované vektory vrací cosinus úhlu mezi vektory. Pokud je zapnutý průchod pro doplňování neotexturovaných ploch, polovina ze zadaného počtu fotografií pro texturování se vybere podle aktuálního směru a druhá polovina se rozdělí mezi neotexturované plochy. Pokud je potřeba dotexturovat plochy z více směrů, počet fotografií se rozdělí váženě podle velikostí daných ploch. Poté, co je fotografie určena k použití, se inicializuje načítání originální fotografie v plné velikosti. Toto je realizováno vícevláknově za použití třídy \texttt{QThreadPool} z Qt, která si interně udržuje frontu fotografií čekajících na načtení.  Při rychlém pohybu virtuální kamery se může stát, že fotografie již není aktuální dříve, než se uvolní volné vlákno a začne se načítat. Taková situace je ošetřena booleovskou hodnotou u každé fotografie, která indikuje zda se aktuálně fotografie používá. Pokud by nebylo toto ošetřeno, mohlo by dojít k načítání fotografií, které již nejsou vůbec potřeba, na úkor aktuálních. Zároveň je také nutné hlídat, které fotografie se přestaly používat. Tyto fotografie je nutné z paměti odstranit, jinak by postupně došlo k zaplnění paměti.
+
+Třída se zároveň spravuje texturovací objekty, které slouží k připojení textur do OpenGL. Protože v OpenGL je omezené množství texturovacích jednotek, implementace má omezené maximální množství fotografií, které mohou být současně použity pro texturování. OpenGL garantuje minimálně 16 texturovacích jednotek\footnote{Ve skutečnosti OpenGL garantuje 16 texturovacíh jednotek pro každou fázi zobrazovacího řetězce, ale protože texturování provádíme pouze na fragmentovém shaderu, zajímá nás pouze množství texturovacích jednotek dostupné v této fázi.}, ale běžně GPU podporují 32 nebo více texturovacích jednotek, což je pro potřeby aplikace dostatečné. Problém ale nastává v tom, že do paměti na GPU není možné nahrát všechny náhledy. Pokaždé, když je fotografie vybrána, je nutné nahrát do GPU náhled a později i plnou velikost. Toto se samozřejmě neděje v každém framu, \texttt{TextureHandler} si udržuje přehled o tom, které fotografie jsou v GPU nahrány. Přenosy na GPU jsou prováděny pouze pokud byla vybrána nějaká nová fotografie. V takovém případě některá z textur na GPU přestala být aktuální.  \texttt{TextureHandler} se postará o to, aby se negenerovala nová textura, ale použije se existující texturovací objekt, pouze se přepíšou obrazová data. 
 
 
+\section{Rendering}
 
--
+V aplikaci je implementováno několik renderovacích průchodů. O správu texturovacích průchodů se stará třída \texttt{RenderPassHandler}. Třída umožňuje přidávat a odebírat průchody a deleguje vykreslení objektu jednotlivým průchodům ve správném pořadí. Jednotlivé průchody dědí z třídy \texttt{RenderPass}, která obsahuje společné prvky průchodů. O renderování dat se stará třída \texttt{Renderer}, která zapouzdřuje přenos dat na GPU a poskytuje jednotlivým průchodům jednotné rozhraní. O správu shaderů se stará třída \texttt{ShaderHandler}. Třída se stará o načítání, kompilaci a linkování shaderů a ukládá si jejich identifikátory, které poté poskytuje renderovacím průchodům.
 
-promítnutí bodů do fotek, konvexní obálka, úprava úhlu
+Základním průchodem je \texttt{TextuingRenderPass}, který se stará o texturování modelu. Tento průchod zavolá aktualizaci třídy \texttt{TextureHandler}, od které obdrží aktuální fotografie společně s jejich kalibracemi. Protože vstupní fotografie mohou mít libovolné rozměry, jsou použity textury typu \verb|GL_TEXTURE_RECTANGLE|, které nemusí být čtvercové a jejich rozměry nemusí být zarovnané na mocniny 2. Jejich další výhodou je, že na shaderech se do těchto textur nepřistupuje pomocí normalizovaných souřadnic, ale přímo pomocí souřadnic v pixelech. To je výhodné, protože po promítnutí pozice fragmentu do obrázku pomocí matice kamery získáme souřadnice také v pixelech a nemusíme je normalizovat. Nevýhodou těchto textur je absence mipmap.
+
+Kromě textur je do shaderu nutné připojit informace o kameře. To je realizováno pomocí uniformního bufferu. Tyto buffer slouží k rychlému nahrávání vetšího množství uniformních dat do shaderů. Uniformní buffer je umístěn v lokální paměti, proto je čtení dat z bufferu rychlé, což je na shaderu velmi důležité. Navíc je optimalizovaný pro sekvenční přístup, který je při iteraci kamer na shaderu vhodný. Buffer používá \texttt{std140} layout, který definuje přesné zarovnání datových typů, to umožňuje snadnou správu paměti v bufferu.
+
+V texturovacím průchodu je použit vertexový a fragmentový shader. Na vertexovém shaderu se pouze transformují vrcholy a normály modelovou a projekční maticí. Do fragmentového shaderu se z vertexového posílá transformovaná normála a původní pozice vrcholu ve světových souřadnicích. Na fragmentovém shaderu se provádí projekce pozice do připojených textur pomocí matic kamer. Proto jsou do do shaderu posílány netransformované  světové souřadnice. Shader iteruje přes všechny připojené textury a pro každou vypočítá váhu podle vztahu \ref{eq:weight-scheme}.  Průběžně se ukládá aktuální nejvyšší váha, podle které se zvolí výsledná textura, ze které je získána barva pro fragment. V ukázce \ref{code:frag-weight} je zobrazen formát uniformního bufferu s daty, výpočet váhy fotografie a projekce souřadnic do textury.
+
+\lstset{
+	morekeywords={TextureData,ivec2, vec3, vec2,in,out,mat4},
+	emph={[1]projectCoords,inRange,computeWeight,dot},
+	emphstyle={[1]\footnotesize\ttfamily\textbf},
+}
+\begin{lstlisting}[caption={Výpočet váhy a projekce souřadnice na fragmentovém shaderu.},label={code:frag-weight},float=[ht]]
+struct TextureData {
+	mat4	u_Rt;						//matice R|t
+	vec3	u_cameraViewDir;//opraveny smer kamery
+	ivec2	u_textureSize;	//rozmery fotografie
+	float	u_textureFL;		//ohniskova vzdalenost
+	float	u_coveredArea;	//normalizovana plocha objektu ve fotce
+};
+layout(std140) uniform u_textureDataBlock {
+	TextureData ub_texData[MAX_TEXTURES];
+};
+
+void projectCoords(in int index, in vec4 pos, out vec2 coords) {
+	TextureData data = ub_texData[index];
+	vec3 c = (data.u_Rt * pos).xyz;
+	coords =  c.xy/c.z * data.u_textureFL + data.u_textureSize.xy * 0.5f;
+}
+
+bool inRange(in int index, in vec2 coords) {
+	ivec2 s = ub_texData[index].u_textureSize;
+	return coords.x >= 0 && coords.x < s.x && coords.y >= 0 && coords.y < s.y; 
+}
+
+float computeWeight(in int index, in vec3 N, out vec2 coords, in float dl = dirLimit) {
+	TextureData data = ub_texData[index];
+	float weight = data.u_coveredArea;
+	weight *= dot(u_viewDir, data.u_cameraViewDir);
+
+	projectCoords(index, In.v_position, coords);
+	weight *= float(inRange(index, coords));
+
+	float dirDiff = dot(N, data.u_cameraViewDir);
+	weight *= -(dirDiff + 1.f) / (1.f - dl) + 1;
+	return weight;
+}
+\end{lstlisting}
+
+Pokrytí celé scény pomocí vyhledávání neotexturovaných ploch je řešené jako samostatný průchod \texttt{TexturingPrePass}, který je vždy spuštěn před texturovacím průchodem. Texturovací průchod ale není závislý na prvním průchodu. To má velkou výhodu v tom, že první průchod může být volitelný, a je možné ho za běhu aplikace zapínat a vypínat. K tomu jsou dva hlavní důvody - první průchod je výpočetně poměrně náročný a výrazně zpomaluje běh aplikace, což může být problém na méně výkoném hardwaru. Dále tento průchod vyžaduje OpenGL 4.3 s rozšířením \texttt{GL\textunderscore NV\textunderscore shader\textunderscore atomic\textunderscore float}, které je v současnosti dostupné pouze na kartách od výrobce NVIDIA. Aplikaci je tedy možné používat i bez tohoto průchodu, ale v některých scénách budou výsledky vizuálně horší.
+
+Jak již bylo popsáno v sekci \ref{sec:photo-choosing}, texturovací průchod nejprve zjistí, které plochy není možné otexturovat. To zjistí výpočtem váhy, která probíhá stejně jako v texturovacím průchodu. Pokud je váha 0, fragment nelze otexturovat. V tom případě se do textury vykreslí aktuální normála. Vykreslování do textury je v OpenGL standardní operace a jde realizovat jednoduše. Poté je potřeba texturu přečíst a zjistit, které směry jsou v textuře uloženy. To ale není úplně jednoduché, protože textura je uložena v paměti na GPU. Kopírovat texturu v každém framu do RAM je velmi náročné a real-time aplikaci nepoužitelné. proto jsem se rozhodl provést klastrování normál na GPU pomocí výpočetních shaderů.
+
+Výpočetní shadery jsou poměrně nová technologie, dostupná od OpenGL 4.3. Tyto shadery narozdíl od ostatních nepatří do zobrazovacího řetězce a nepodílí se přímo na renderingu. Naopak tyto shadery umožňují provádět na GPU obecné výpočty, které s grafikou vůbec nemusí souviset. Architektura GPU je masivně paralelní, proto je na GPU vhodné provádět pouze výpočty, které jdou ve velkém měřítku paralelizovat. Výpočetní shadery jsou podobné technologiím CUDA nebo OpenCL, které také slouží k provádění obecných výpočtů na GPU. Výhoda výpočetních shaderů spočívá v tom, že je velmi snadné je zapojit do aplikace, které již OpenGL používá, protože mapování bufferů či textur probíhá úplně stejně, jako u běžných shaderů. Zároveň výpočetní shadery také používají jazyk GLSL, který poskytuje řadu užitečných funkcí. 
+
+Pro klastrování normál je použit algoritmus k-means \cite{Lloyd82}. Tento algoritmus na začátku rozdělí data náhodně do $k$ skupin. Poté spočítá centroid každého klastru a porovná prvky se všemi centroidy. Pokud je prvek blíže k některému centroidu z jiného klastru, je do tohoto klastru přesunut. Takto algoritmus iterativně pokračuje, dokud existuje prvek, který se v dané iteraci přesunuje do jiného clusteru. Případně je možné algoritmus ukončit po daném počtu iterací. Algoritmus je primárně určen pro klastrování bodů v prostoru, ale je možné ho použít i pro klastrování vektorů, kdy vzdálenost směrů určuje úhel mezi vektory.
+
+Algoritmu je vhodný pro paralelní implementaci na GPU. Pro každý pixel vstupní normálové textury se spustí jedno vlákno, které porovná úhel se všemi klastry a určí, zda se normála přesune do jiného klastru. Poté je nutné v rámci všech klastrů spočítat jejich centroid, tedy sečíst všechny normály v klastru a výsledek vydělit počtem normál. Tento krok jde také paralelizovat pomocí jednoho ze základních paralelních algoritmů - redukce.
+
+Paralelní redukce je algoritmus, který umožňuje paralelně sečíst sekvenci čísel. Funguje tak, že v každé iteraci jedno vlákno sečte dvě unikátní a čísla a uloží částečný výsledek. Tím vznikne z $n$ prvků původní množiny $\frac{n}{2}$ částečných výsledků. Takto se rekurzivně pokračuje, dokud algoritmus nenajde výsledek. Běh algoritmu je znázorněna na obrázku \ref{fig:reduction}.
+
+\begin{figure}[bh]
+\begin{center}
+\includegraphics[width=\textwidth*2/3]{figures/reduction}
+\caption{Obrázek znázorňuje paralelní redukci.}
+\label{fig:reduction}
+\end{center}
+\end{figure}
 
 
 
@@ -424,15 +545,20 @@ promítnutí bodů do fotek, konvexní obálka, úprava úhlu
 \chapter{Seznam použitých zkratek}
 
 \begin{description}
-\item[2D] Two-Dimensional
-\item[ABN] Abstract Boolean Networks
-\item[ASIC] Application-Specific Integrated Circuit
+\item[API]
+\item[CPU] Central processing unit, procesor
+\item[GPU] Graphic processing unit, grafický procesor
+\item[HDD] Hard disk drive, pevný disk
+\item[SSD] Solid-state drive
+\item[GUI] Graphics user interface, grafické uživatelské rozhraní
+\item[JPEG]  Joint photographic experts group
 \end{description}
-\vdots
 
 \chapter{Instalační a uživatelská příručka}
-\subsection{Překlad aplikace}
-\subsection{Používání aplikace}
+\label{chap:install}
+
+\section{Překlad aplikace}
+\section{Používání aplikace}
 
 \chapter{Obsah přiloženého CD}
 
