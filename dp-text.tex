@@ -90,6 +90,9 @@ TBD
 
 \listoftables
 
+\renewcommand*{\lstlistlistingname}{Seznam zdrojových kódů}
+\lstlistoflistings
+
 \mainbodystarts
 % horizontalní mezera mezi dvema odstavci \parskip=5pt 11.12.2008 parskip +
 % tolerance
@@ -394,17 +397,16 @@ Musíme brát v úvahu, že máme dvě rozdílné množiny fotografií. Nejprve 
 
 \section{Požadavky na implementaci}
 
-TODO
+Aplikace by měla provádět texturování v reálném čase, proto je základním požadavkem rychlost zobrazování. Pro programy zobrazující 3D grafiku se jako dostatečná frekvence zobrazování snímků uvažuje 30fps. Dalším důležitým požadavkem je kvalita výsledných textur, která by měla být co nejlepší. To znamená zejména minimální výskyt švů mezi texturami a omezení chybného otexturování zastíněných oblastí. V optimálním případě by se render modelu z místa shodného s pozicí některé vstupní kamery neměl lišit od pořízené fotografie. Mezi další požadavky patří přenositelnost programu na více platforem a jednoduché ovládání pomocí grafického rozhraní.
 
 \section{Použité technologie a knihovny}
 Aplikace je implementována v ANSI C++11 a je možné ji přeložit v linuxových operačních systémech i v MS Windows. Základ aplikace je postaven na multiplatformní knihovně Qt 4.8. Qt je jedna z nejrozšířenějších knihoven pro tvorbu aplikací s grafickým rozhraním (GUI), ale poskytuje i další podpůrné moduly, které s grafickým rozhraním přímo nesouvisí. Kromě tvorby GUI je Qt využito pro načítání vstupů z periférií a pro správu vláken. Pro efektivní zobrazování 3D grafiky je využito OpenGL, které poskytuje API pro rendering a výpočty na grafickém procesoru (GPU). Společně s OpenGL je použit jazyk GLSL, který slouží k tvorbě tzv. shaderů. To jsou samostatné programy, které se spouští na grafické kartě a řídí jednotlivé části programovatelného zobrazovacího řetězce. Pro běh aplikace je nutná grafická karta podporující OpenGL 4.0, což je jakákoliv novější grafická karta. Část programu využívá OpenGL 4.3, ale pro základní funkčnost aplikace není tato verze vyžadována. 
 
 Společně s OpenGL je využita knihovna GLEW 1.9, která slouží k načítání OpenGL rozšíření. S OpenGL je také úzce spjatá knihovna GLM, která poskytuje matematické operace běžně používané v počítačové grafice. Knihovna poskytuje základní datové struktury jako jsou vektory a matice a různé algebraické operace s těmito strukturami. Další použité knihovny jsou libjpeg 8 pro efektivní načítání obrázku ve formátu JPG a Assimp 3 pro načítání 3D modelů ve velkém množství formátů. Všechny využité knihovny jsou dostupné pod otevřenou licencí.
-glm
 
 \section{Architektura aplikace}
 
-Architektura aplikace zobrazující 3D grafiku v reálném čase se liší od běžných desktopových aplikací. Základem je efektivně využít zobrazovací řetězec, který OpenGL poskytuje, a zajistit distribuci dat mezi aplikací a grafickou kartou tak, aby byly omezeny přenosy dat mezi CPU a GPU, které jsou velmi drahé. Zároveň je důležité, aby všechny zobrazovací průchody měly přístup k aktuálním datům potřebným pro rendering. Samotné OpenGL je možné popsat jako data-driven architekturu, nicméně aplikace využívá tradičního objektového návrhu.  Zjednodušený návrh architektury aplikace je zobrazený na obrázku \ref{fig:architecture}.
+Architektura aplikace zobrazující 3D grafiku v reálném čase se liší od běžných desktopových aplikací. Základem je efektivně využít zobrazovací řetězec a zajistit distribuci dat mezi aplikací a grafickou kartou tak, aby byly omezeny přenosy dat mezi CPU a GPU, které jsou velmi drahé. Zároveň je důležité, aby všechny zobrazovací průchody měly přístup k aktuálním datům potřebným pro rendering. Samotné OpenGL je možné popsat jako data-driven architekturu, nicméně aplikace využívá tradičního objektového návrhu. Základním prvkem OpenGL aplikace je hlavní smyčka, která neustále provádí aktualizaci scény bez ohledu na uživatelské vstupy. Ty se obvykle ukládají do fronty a jsou zpracovány vždy na začátku každé iterace smyčky. Zjednodušený návrh architektury aplikace je zobrazený na obrázku \ref{fig:architecture}.
 
 \begin{figure}[ht]
 \begin{center}
@@ -452,21 +454,22 @@ O načítání fotografií se stará třída \texttt{TextureHandler}. Tato tří
 
 Třída se zároveň spravuje texturovací objekty, které slouží k připojení textur do OpenGL. Protože v OpenGL je omezené množství texturovacích jednotek, implementace má omezené maximální množství fotografií, které mohou být současně použity pro texturování. OpenGL garantuje minimálně 16 texturovacích jednotek\footnote{Ve skutečnosti OpenGL garantuje 16 texturovacíh jednotek pro každou fázi zobrazovacího řetězce, ale protože texturování provádíme pouze na fragmentovém shaderu, zajímá nás pouze množství texturovacích jednotek dostupné v této fázi.}, ale běžně GPU podporují 32 nebo více texturovacích jednotek, což je pro potřeby aplikace dostatečné. Problém ale nastává v tom, že do paměti na GPU není možné nahrát všechny náhledy. Pokaždé, když je fotografie vybrána, je nutné nahrát do GPU náhled a později i plnou velikost. Toto se samozřejmě neděje v každém framu, \texttt{TextureHandler} si udržuje přehled o tom, které fotografie jsou v GPU nahrány. Přenosy na GPU jsou prováděny pouze pokud byla vybrána nějaká nová fotografie. V takovém případě některá z textur na GPU přestala být aktuální.  \texttt{TextureHandler} se postará o to, aby se negenerovala nová textura, ale použije se existující texturovací objekt, pouze se přepíšou obrazová data. 
 
-
+\newpage
 \section{Rendering}
 
 V aplikaci je implementováno několik renderovacích průchodů. O správu texturovacích průchodů se stará třída \texttt{RenderPassHandler}. Třída umožňuje přidávat a odebírat průchody a deleguje vykreslení objektu jednotlivým průchodům ve správném pořadí. Jednotlivé průchody dědí z třídy \texttt{RenderPass}, která obsahuje společné prvky průchodů. O renderování dat se stará třída \texttt{Renderer}, která zapouzdřuje přenos dat na GPU a poskytuje jednotlivým průchodům jednotné rozhraní. O správu shaderů se stará třída \texttt{ShaderHandler}. Třída se stará o načítání, kompilaci a linkování shaderů a ukládá si jejich identifikátory, které poté poskytuje renderovacím průchodům.
+
+\subsection{Texturovací průchod}
 
 Základním průchodem je \texttt{TextuingRenderPass}, který se stará o texturování modelu. Tento průchod zavolá aktualizaci třídy \texttt{TextureHandler}, od které obdrží aktuální fotografie společně s jejich kalibracemi. Protože vstupní fotografie mohou mít libovolné rozměry, jsou použity textury typu \verb|GL_TEXTURE_RECTANGLE|, které nemusí být čtvercové a jejich rozměry nemusí být zarovnané na mocniny 2. Jejich další výhodou je, že na shaderech se do těchto textur nepřistupuje pomocí normalizovaných souřadnic, ale přímo pomocí souřadnic v pixelech. To je výhodné, protože po promítnutí pozice fragmentu do obrázku pomocí matice kamery získáme souřadnice také v pixelech a nemusíme je normalizovat. Nevýhodou těchto textur je absence mipmap.
 
 Kromě textur je do shaderu nutné připojit informace o kameře. To je realizováno pomocí uniformního bufferu. Tyto buffer slouží k rychlému nahrávání vetšího množství uniformních dat do shaderů. Uniformní buffer je umístěn v lokální paměti, proto je čtení dat z bufferu rychlé, což je na shaderu velmi důležité. Navíc je optimalizovaný pro sekvenční přístup, který je při iteraci kamer na shaderu vhodný. Buffer používá \texttt{std140} layout, který definuje přesné zarovnání datových typů, to umožňuje snadnou správu paměti v bufferu.
 
-V texturovacím průchodu je použit vertexový a fragmentový shader. Na vertexovém shaderu se pouze transformují vrcholy a normály modelovou a projekční maticí. Do fragmentového shaderu se z vertexového posílá transformovaná normála a původní pozice vrcholu ve světových souřadnicích. Na fragmentovém shaderu se provádí projekce pozice do připojených textur pomocí matic kamer. Proto jsou do do shaderu posílány netransformované  světové souřadnice. Shader iteruje přes všechny připojené textury a pro každou vypočítá váhu podle vztahu \ref{eq:weight-scheme}.  Průběžně se ukládá aktuální nejvyšší váha, podle které se zvolí výsledná textura, ze které je získána barva pro fragment. V ukázce \ref{code:frag-weight} je zobrazen formát uniformního bufferu s daty, výpočet váhy fotografie a projekce souřadnic do textury.
 
 \lstset{
 	morekeywords={TextureData,ivec2, vec3, vec2,in,out,mat4},
-	emph={[1]projectCoords,inRange,computeWeight,dot},
-	emphstyle={[1]\footnotesize\ttfamily\textbf},
+	emph={[1]projectCoords,inRange,computeWeight,dot,},
+	emphstyle={[1]\color{red!30!black!}},
 }
 \begin{lstlisting}[caption={Výpočet váhy a projekce souřadnice na fragmentovém shaderu.},label={code:frag-weight},float=[ht]]
 struct TextureData {
@@ -504,6 +507,8 @@ float computeWeight(in int index, in vec3 N, out vec2 coords, in float dl = dirL
 	return weight;
 }
 \end{lstlisting}
+
+\subsection{Průchod pro pokrytí scény}
 
 Pokrytí celé scény pomocí vyhledávání neotexturovaných ploch je řešené jako samostatný průchod \texttt{TexturingPrePass}, který je vždy spuštěn před texturovacím průchodem. Texturovací průchod ale není závislý na prvním průchodu. To má velkou výhodu v tom, že první průchod může být volitelný, a je možné ho za běhu aplikace zapínat a vypínat. K tomu jsou dva hlavní důvody - první průchod je výpočetně poměrně náročný a výrazně zpomaluje běh aplikace, což může být problém na méně výkoném hardwaru. Dále tento průchod vyžaduje OpenGL 4.3 s rozšířením \texttt{GL\textunderscore NV\textunderscore shader\textunderscore atomic\textunderscore float}, které je v současnosti dostupné pouze na kartách od výrobce NVIDIA. Aplikaci je tedy možné používat i bez tohoto průchodu, ale v některých scénách budou výsledky vizuálně horší.
 
@@ -556,11 +561,10 @@ shared uint sizeCache[CLUSTERS][SIZE];
 V ukázce \ref{code:comp-reduction} je zobrazen kompletní algoritmus paralelní redukce. Na řádcích \texttt{1-7} je provedena inicializace dat ve sdílené paměti. Všechna data jsou inicializována na 0, poté jsou inicializována data jednotlivých klastrů. Proměná \texttt{centroidIDX} je index klastru, do kterého přísluší aktuální vlákno. Tato proměnná je v prvním průchodu inicializovaná na základě pozice pracovní skupiny, v dalších iteracích je hodnota načtena z pole \texttt{indices}. Následuje cyklus, který provádí samotnou redukci odděleně pro každý klastr. Po každém cyklu je nutné provést paměťovou synchronizaci vláken pomocí funkce  \texttt{memoryBarrierShared}, která zajistí viditelnost zapsaných výsledků pro všechny vlákna. Zároveň je nutné provést synchronizaci pomocí \texttt{barrier}, která zajistí, že žádné vlákno v rámci skupiny nebude pokračovat, dokud všechny vlákna nedosáhly bariéry. Podmínku na řádce \texttt{21} vždy splní pouze jedno vlákno v pracovní skupině. Toto vlákno přidá pomocí atomické operace výsledek z redukce v dané skupině do bufferu v hlavní paměti. Tím získáme finální výsledek redukce. Atomické operace jsou velmi náročné a je vhodné se jim vyhýbat. V tomto případě je ale atomická operace nad proměnnou provedena pouze jednou pro každou pracovní skupinu, takže nezpůsobí výraznou ztrátu výkonu.
 
 \lstset{
-	emph={[2]barrier,memoryBarrierShared,atomicAdd},
-	emphstyle={[2]\color{BurntOrange}},
+	emph={[1]barrier,memoryBarrierShared,atomicAdd},
 }
-\begin{lstlisting}[caption={Datové struktury potřebné pro sečtení normál pomocí paralelní redukce.},firstnumber=1,label={code:comp-reduction},float=[ht]]
-uint localID = gl_LocalInvocationIndex; //unikatni index v ramci bloku
+\begin{lstlisting}[caption={Paralelní redukce na výpočetních shaderech.},firstnumber=1,label={code:comp-reduction},float=[ht]]
+uint localID = gl_LocalInvocationIndex; //unikatni index v ramci skupiny
 for(int i = 0; i < CLUSTERS; ++i) {
 	sizeCache[i][localID] = 0;
 	cache[i][localID] = vec3(0, 0, 0);
@@ -569,18 +573,18 @@ sizeCache[centroidIDX][localID] = int(isNormal);
 cache[centroidIDX][localID] = int(isNormal) * N;
 
 int stepv = (SIZE >> 1); 
-while(stepv > 0) { //reduction over data in each working group
+while(stepv > 0) { //redukce v ramci skupiny
 	if (localID < stepv) {
 		for(int i = 0; i < CLUSTERS; ++i) {
 			sizeCache[i][localID] += sizeCache[i][localID + stepv];
 			cache[i][localID] += cache[i][localID + stepv];
 		}
 	}
-	memoryBarrierShared();
+	memoryBarrierShared(); //synchronizace vlaken
 	barrier();
 	stepv = (stepv >> 1);
 }
-if (localID == 0) {
+if (localID == 0) { //secteni vysledku ze vsech skupin
 	for(int i = 0; i < CLUSTERS; ++i) {
 		if(sizeCache[i][0] != 0) atomicAdd(clusters[i].size, sizeCache[i][0]);
 		if(cache[i][0].x != 0) atomicAdd(clusters[i].cntr.x, cache[i][0].x);
@@ -591,8 +595,32 @@ if (localID == 0) {
 \end{lstlisting}
 
 
-Protože na výpočetních shaderech není možné synchronizovat všechna vlákna napříč pracovními skupinami, není možné po provedení redukce vydělit získaný centroid počtem vláken a pokračovat v klastrování. Jediný způsob, jak zajistit globální synchronizaci je spustit nový shader. Proto jsou data z paralelní redukce zkopírována na CPU, kde proběhne výpočet a normalizace centroidu a poté je spuštěn nový shader, na kterém je provedeno klastrování. Přenos klastrů z GPU na CPU není problém, protože každý klastr obsahuje pouze jeden vektor a počet normál v klastru. 
+Protože na výpočetních shaderech není možné synchronizovat všechna vlákna napříč pracovními skupinami, není možné po provedení redukce vydělit získaný centroid počtem vláken a pokračovat v klastrování. Jediný způsob, jak zajistit globální synchronizaci, je spustit nový shader. Proto jsou data z paralelní redukce zkopírována na CPU, kde proběhne výpočet a normalizace centroidu a poté je spuštěn nový shader, na kterém je provedeno klastrování. Přenos klastrů z GPU na CPU není problém, protože každý klastr obsahuje pouze jeden vektor a počet normál v klastru. Po výpočtu centroidu je spuštěn další shader, který provádí samotné klastrování. Shader má připojené stejné buffery, jako ten, který provádí redukci. Tento shader je již poměrně jednoduchý, pouze pro iteruje přes všechny klastry, porovnává úhel mezi aktuální normálou a centroidem klastru a nastavuje index nejvhodnějšího klastru, viz ukázka \ref{code:comp-cluster}. Poté se opět provede redukce a pokračuje se další iterací.
 
+\lstset{
+	emph={[1]memoryBarrier,dot},
+}
+\begin{lstlisting}[caption={K-means klastrování na výpočetních shaderech.},firstnumber=1,label={code:comp-cluster},float=[ht]]
+float myDot = -1;
+
+if(isNormal) {
+	for(int k = 0; k < CLUSTERS; ++k) {
+		memoryBarrier();
+		float d = dot(N, clusters[k].cntr);
+		if(d > myDot) {
+			myDot = d;
+			indices[id] = k;
+			moving = true;
+		}
+	}
+}
+\end{lstlisting}
+
+Klastrování je omezeno na 5 iterací. To se ukázalo jako dostatečné, protože klastry jsou v datech obvykle výrazné a algoritmus konverguje ke správnému rozdělení velmi rychle.
+
+\subsection{Ostatní průchody}
+
+V aplikaci jsou implementovány ještě některé další jednoduché průchody. Pro vizualizaci vstupních kamer a lepší orientaci ve scéně slouží \texttt{RadarRenderPass}, který v rohu okna zobrazuje 2D pohled na scénu shora, kde jsou znázorněny pozice a směry všech vstupních kamer a také pozice virtuální kamery. Dále jsou zde zvýrazněné aktuálně využívané kamery pro texturování. \texttt{CameraPointsRenderPass} do scény umožňuje vykreslit body na pozice vstupních kamer.
 
 \chapter{Testování}
 
@@ -618,6 +646,7 @@ Protože na výpočetních shaderech není možné synchronizovat všechna vlák
 \item[SSD] Solid-state drive
 \item[GUI] Graphics user interface, grafické uživatelské rozhraní
 \item[JPEG]  Joint photographic experts group
+\item[fps]  frames per second, obrázků za vteřinu
 \end{description}
 
 \chapter{Instalační a uživatelská příručka}
