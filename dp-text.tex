@@ -117,28 +117,38 @@ počítačových animacích nebo v herním či filmovém průmyslu.
 
 Tato práce se zabývá jednou částí 3D rekonstrukce a to texturování objektů z
 fotografií. Na vstupu očekáváme již zrekonstruovaný 3D model (síť trojúhelníků)
-a větší množství (desítky až stovky) kalibrovaných fotografií z různých úhlů. Textura společně s materiálem slouží k popisu povrchu a je důležitá pro vnímání barvy a detailní struktury povrchu \cite{mpg}. Aplikace textury vede z výraznému zvýšení vizuální kvality objektu za relativně malou cenu.  Často je vizuálně i výkonově jednodušší použít detailní texturu a jednoduchý model s menším počtem vrcholů.
+a větší množství (desítky až stovky) kalibrovaných fotografií z různých úhlů. Textura společně s materiálem slouží k popisu povrchu a je důležitá pro vnímání barvy a detailní struktury povrchu \cite{mpg}. Aplikace textury vede z výraznému zvýšení vizuální kvality objektu za relativně malou cenu.  Často je vizuálně i výkonově jednodušší použít detailní texturu a jednoduchý model s menším počtem vrcholů, viz obr. \ref{fig:example}.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/example}
+\caption{Ukázka 3D modelu bez textur (vlevo) a s texturami (vpravo).}
+\label{fig:example}
+\end{center}
+\end{figure}
 
 Syntéza textur z fotografií je poměrně složitá, protože 	na výsledný model se díváme i z jiných pohledů, než ze kterých byly pořízeny fotografie. Problémy, které při tomto procesu vznikají jsou popsány zejména v následující kapitole. Cílem této práce je vytvořit aplikaci, která v reálném čase mapuje fotografie na model. Protože aplikace funguje v reálném čase, může zohlednit aktuální pohled virtuální kamery a na základě pozice kamery vybrat nejvhodnější fotografie pro vytvoření textury. K tomu využívá velkého výkonu současných GPU.
 
-[[obrázek model s a bez textur TODO]]
+\newpage
+\section{Struktura práce}
 
+Práce v kapitole \ref{chap:analysis} rozebírá zadaný problém a popisuje související práce. Poté se věnuje popisu navrhované metody a řešení problémů. Kapitola \ref{chap:impl} popisuje implementaci naší metody. Poté je v kapitole \ref{chap:testing} provedeno testování aplikace na různých scénách. V závěru v kapitole \ref{chap:end} jsou diskutovány výsledky testování a jsou navrženy možné vylepšení metody a implementace.
 
-\chapter{Analýza problému a návrh řešení} %??
-
+\chapter{Analýza problému a návrh řešení}
+\label{chap:analysis}
 \section{Popis problému}
 
-Předpokládejme, že se díváme na statickou scénu s konstantním osvětlením, kde se pohybuje pouze pozorovatel. Za těchto podmínek můžeme popsat libovolnou fotografii pomocí pozice a orientace kamery. Pokud bychom vyfotili sférickou fotografii v každé možné pozici kamery, mohli bychom vyrenderovat kompletní scénu z libovolného pohledu. Kombinací všech 3D pozic kamery $(x, y, z)$ a směrů $(\theta, \phi)$ získáme plenoptickou funkci $\textbf{L}(x, y, z, \theta, \phi)$ \cite{Adelson91}. Snahou je aproximovat funkci \textbf{L} pomocí konečného množství diskrétních vzorků $(x, y, z, \theta, \phi)$ a z této reprezentace efektivně renderovat nové pohledy (s pomocí 3D geometrie). Povrch geometrie můžeme popsat jako funkci $\textbf{G} : (x, y, z, \theta, \phi) \to (x_0, y_0, z_0)$, tedy jako mapování pohledových paprsků na 3D souřadnice povrchu. Jako $\textbf{G}_0$ si označíme funkci skutečného povrchu, $\textbf{G}_A$  reprezentuje aproximovaný povrch (rekonstruovaný 3D model), viz obr. \ref{fig:projection-error}.
+Předpokládejme, že se díváme na statickou scénu s konstantním osvětlením, kde se pohybuje pouze pozorovatel. Za těchto podmínek můžeme popsat libovolnou fotografii pomocí pozice a orientace kamery. Pokud bychom vyfotili sférickou fotografii v každé možné pozici kamery, mohli bychom vyrenderovat kompletní scénu z libovolného pohledu. Kombinací všech 3D pozic kamery $(x, y, z)$ a směrů $(\theta, \phi)$ získáme plenoptickou funkci $\textbf{L}(x, y, z, \theta, \phi)$ \cite{Adelson91}. Snahou je aproximovat funkci \textbf{L} pomocí konečného množství diskrétních vzorků $(x, y, z, \theta, \phi)$ a z této reprezentace efektivně renderovat nové pohledy (s pomocí 3D geometrie) \cite{floating-textures}. Povrch geometrie můžeme popsat jako funkci $\textbf{G} : (x, y, z, \theta, \phi) \to (x_0, y_0, z_0)$, tedy jako mapování pohledových paprsků na 3D souřadnice povrchu. Jako $\textbf{G}_0$ si označíme funkci skutečného povrchu, $\textbf{G}_A$  reprezentuje aproximovaný povrch (rekonstruovaný 3D model), viz obr. \ref{fig:projection-error}.
 
 \begin{figure}[hb]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/projection-error}
-\caption{(a) chyby v geometrii způsobují chybnou projekci, bod P na původní geometrii je promítnut na body $P_1$ a $P_2$ na aproximované geometrii. (b) chyby ve viditelnosti, bod P je chybně viditelný z kamery $C_2$ a naopak není viditelný z kamery $C_1$.}
+\caption{(a) Chyby v geometrii způsobují chybnou projekci, bod P na původní geometrii je promítnut na body $P_1$ a $P_2$ na aproximované geometrii. (b) Chyby ve viditelnosti, bod P je chybně viditelný z kamery $C_2$ a naopak není viditelný z kamery $C_1$.}
 \label{fig:projection-error}
 \end{center}
 \end{figure}
 
-Důležitým prvkem je projekční matice kamery, která nám určuje projekční mapování 3D bodu $(x, y, z)$ do 2D souřadnic $(s, t)$ v $i$-té fotografii  $\textbf{P}_i: (x, y, z) \to (s, t)$, viz sekce \ref{sec:matice-kamery}.  Z promítnuté pozice v obrázku pak můžeme přiřadit 3D bodu barvu $\textbf{I}_i : (s, t) \to (r, g, b)$. Poté libovolný nový pohled $\textbf{I}^V$ z virtuální kamery $V$ můžeme vyjádřit pomocí rovnice \ref{eq:iview} \cite{floating-textures}.
+Důležitým prvkem je projekční matice kamery, která nám určuje projekční mapování 3D bodu $(x, y, z)$ do 2D souřadnic $(s, t)$ v $i$-té fotografii  $\textbf{P}_i: (x, y, z) \to (s, t)$, viz sekce \ref{sec:matice-kamery}.  Z promítnuté pozice v obrázku pak můžeme přiřadit 3D bodu barvu $\textbf{I}_i : (s, t) \to (r, g, b)$. Poté libovolný nový pohled $\textbf{I}^V$ z virtuální kamery $V$ můžeme vyjádřit pomocí rovnice \ref{eq:iview}.
 
 \begin{align}
 \label{eq:iview}
@@ -162,7 +172,14 @@ Zásadní problém spočívá v tom, že $\textbf{G}_A \neq \textbf{G}_0$, tedy 
 \label{sec:related}
 
 Existuje několik základních metod, jak mapovat fotografie z více pohledů na
-model. Jednou z možností je projekce všech fotografií a jejich následné sloučení
+model, většina metod ale funguje na stejném principu:
+\begin{enumerate}
+\item Extrakce textur z fotografií pomocí vrhání paprsků či jiné podobné metody.
+\item Vzájemná registrace textur
+\item Sloučení textur do výsledné textury 
+\end{enumerate}
+
+Jednou z možností je projekce všech fotografií a jejich následné sloučení
 pomocí nějakého váženého průměru, jako např. v \cite{Bernardini01}.
 Nevýhodou takové metody je zejména vznik artefaktů ve výsledné textuře, často se
 projevuje tzv. ghosting, kdy se v textuře objeví několik kopií jednoho obrazce.
@@ -229,7 +246,6 @@ rozlišení modelu (jeden vrchol se mapuje na více pixelů ve fotografiích), t
 vyžaduje další zpracování dat a zvyšuje složitost problému.
 
 
-
 Všechny tyto algoritmy mají společné to, že z původních pohledů předem vytvoří
 texturu či atlas textur spojením všech fotografií, přičemž se snaží
 minimalizovat vznik artefaktů nebo případně vzniklé artefakty odstraňovat.
@@ -267,6 +283,21 @@ Na principu výběru nejlepší fotografie na základě aktuálního pohledu je 
 Dále navrhují jednoduchý algoritmus pro odstranění nežádoucích objektů, které se mohou vyskytovat na zdrojových fotografiích - např. auto či chodci před budovou, kterou chceme otexturovat. Uživatel může ručně vymaskovat tyto objekty předem zvolenou barvou a tyto pixely dostanou při texturování nulovou váhu a budou použita data z jiné fotografie. Pokud nejsou dostupná žádná data, vyplňují vzniklé mezery pomocí syntézy obrazu.
 
 \section{Návrh řešení}
+
+\subsection{Princip navrhované metody}
+
+Jak již bylo zmíněno v předchozí sekci, tradiční řešení tohoto problému spočívá ve vytvoření jediné textury pomocí sloučení všech vstupních fotografií dohromady. Tento proces je často velmi náročný a zdlouhavý, na stejných testovacích datech, která jsou použita v této práci, trvá proces extrakce textur řádově hodiny \cite{Kirschner08}. Oproti tomu naše navrhované metoda funguje v reálném čase, kdy provádí projekci vybraných fotografií na model. Načtení scény a předzpracování dat pro naší metodu trvá maximálně několik minut. Druhou výhodou našeho řešení je zahrnutí aktuálního pohledu virtuální kamery, které ostatní metody z principu uvažovat nemůžou. Tím se omezí vznik velkého počtu artefaktů v texturách a to jak vznik švů, tak vznik chyb způsobených vlastním zastíněním. Tyto problémy však kompletně nezmizí a je nutné s nimi počítat. 
+
+\begin{figure}[t]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/faust}
+\caption{(a) Fotografie namapovaná na model vyrenderovaná z podobného pohledu jako původní fotografie. (b) Stejná fotografie vyrendrovaná z jiného pohledu.}
+\label{fig:faust}
+\end{center}
+\end{figure}
+
+Na obrázku \ref{fig:faust} je zobrazeno namapování fotografie na model bez výrazných geometrických detailů. Pokud je fotografie namapována z podobného úhlu jako je vyfocena původní fotografie, textura působí přirozeně. I když model neobsahuje geometrii okna ani dekorace nad oknem, namapovaná textura vyvolává dojem detailnější 3D geometrie. Oproti tomu stejná textura vyrenderovaná z jiného směru, který je výrazně odlišný od původní fotografie, působí nerealistickým dojmem.
+
 
 Algoritmus se skládá ze tří základních kroků - projekce fotografií na model, výběr nejlepších fotografií pro pokrytí celého modelu a výběr nejvhodnějšího pixelu z více fotografií pro otexturování fragmentu\footnote{Fragmentem je v textu vždy myšlena plocha na 3D modelu, který odpovídá jednomu výslednému pixelu na obrazovce. Stejně, jako je termín fragment používán v OpenGL.}.
 
@@ -328,13 +359,13 @@ Při mapování fotografie na model je nutné brát v úvahu, že některé čá
 
 Další možností je použít algoritmus vrhání paprsků, kdy se z kamery vrhají na scénu paprsky a podle zásahů s modelem se určí, které fragmenty jsou z kamery viditelné. Tato metoda také není příliš vhodná, protože aplikace bude v reálném čase využívat až desítky různých kamer zároveň a vrhání dostatečného množství paprsků z každé kamery by bylo výpočetně příliš náročné. Proto se jako nejlepší varianta se jeví využít jednodušší algoritmus, který spoléhá na seřazení kamer podle podobnosti se směrem virtuální kamery. Kvůli velkému množství vstupních kamer se dá očekávat, že pro většinu možných pohledů virtuální kamery bude existovat kamera s velmi podobným pohledem. Pro takovou kameru bude existovat jen velmi malé množství oblastí, které budou z kamery zastíněné, ale z virtuální kamery budou viditelné. Při texturování se kamery seřadí od ``nejlepší'' a každá kamera bude využita k otexturování oblasti, která ještě není pokrytá předchozí kamerou. Tím se výrazně omezí oblasti, které jsou otexturovány zastíněnou kamerou, ale zároveň jsou viditelné z virtuální kamery. K tomuto pravidlu je navíc zaveden práh, který určuje minimální úhel mezi směrem kamery a normálou plochy, pro který může být daná plocha kamerou otexturována. 
 
-
+\newpage
 \subsection{Výběr vhodných fotografií pro otexturování modelu}
 \label{sec:photo-choosing}
 
 Téměř vždy nestačí k otexturování aktuálního pohledu pouze jedna fotografie. Proto je potřeba použít více fotografií pro vyrenderování modelu z nového pohledu. Na obrázku \ref{fig:dum-1} je zobrazen model s jednou a se dvěma namapovanými fotografiemi.  Při mapování více fotografií zároveň je nutné vyřešit dva základní problémy - které fotografie budou vybrány a jak bude fragment otexturován, pokud je jeho polohu možné promítnout do více kamer.
 
-\begin{figure}[bh]
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/dum-1}
 \caption{Projekce jedné (a) a dvou (b) fotografií na 3D model. Pozice kamer jsou pouze ilustrační.}
@@ -344,7 +375,7 @@ Téměř vždy nestačí k otexturování aktuálního pohledu pouze jedna fotog
 
 Výběr fotografií je je prováděn na základě shody aktuálního pohledu virtuální kamery s pohledy vstupních kamer. Pro porovnání je nutné určit, kterým směrem jsou kamery natočeny.  U vstupních kamer jde tento směr zjistit přímo z matice kamery, ale nemusí to být vždy výhodné. Pokud se kamera nedívá přímo na objekt (optická osa neprochází objektem), může být směr kamery poměrně zavádějící. Proto navrhujeme algoritmus, který tento směr koriguje na základě viditelné části modelu na fotografii. Tato metoda funguje tak, že se vrcholy rekonstruovaného modelu promítnou do fotografie, body ležící mimo fotografii se zahodí. Poté je nalezena konvexní obálka \cite{Andrew79} promítnutých bodů, která přibližně ohraničuje oblast modelu zobrazenou na fotografii, viz obr. \ref{fig:convex-hull}. Z bodů ležících na konvexní obálce se spočítá centroid a nalezne se směrový vektor ze středu kamery procházející centroidem. Nalezený vektor se použije jako výsledný směr pohledu kamery. Algoritmus není příliš náročný, promítnutí $n$ vrcholů do obrázku je provedeno se složitostí $\Theta(n)$, konvexní obálku ve 2D lze nalézt se složitostí $0(n~log(n))$. Během tohoto algoritmu je zároveň vypočtena plocha konvexní obálky (plocha konvexního polygonu s vrcholy v bodech konvexní obálky). Tato plocha je později při texturování fragmentů zahrnuta do výpočtu váhy fotografie, viz sekce \ref{sec:fragment-texturing}.
 
-\begin{figure}[th]
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/0-0270_1020_110_09_00_000_098345e}
 \caption{Výřez horní poloviny fotografie použité k texturování. Bílý bod označuje průnik optické osy s obrázkem, žlutý bod označuje vypočtený centroid. Ostatní body jsou vrcholy 3D modelu promítnuté do obrázku, červeně zvýrazněné vrcholy leží na konvexní obálce.}
@@ -360,7 +391,7 @@ Po vypočtení směru pohledu vybereme nejlepší fotografie porovnáním se sm�
 Pro otexturování modelu často nestačí vybrat pouze fotografie, které nejlépe odpovídají aktuálnímu pohledu. Takové fotografie dobře pokryjí plochy, které jsou na aktuální pohled přibližně kolmé. Oproti tomu velmi špatně pokryjí plochy, které jsou téměř paralelní se směrem aktuálního pohledu, ale zároveň jsou ještě dobře viditelné, obr. \ref{fig:faces-no-tex} (a). K určení takových ploch je nutné zavést práh, který definuje maximální úhel mezi normálou plochy a směrem kamery, kdy je ještě možné plochu kvalitně otexturovat. Během testování se ukázalo vhodné použít práh přibližně $70^{\circ}$. 
 
 
-\begin{figure}[th]
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/faces-no-tex}
 \caption{(a) Model otexturovaný šesti fotografiemi z kamer, které nejlépe odpovídají pohledu virtuální kamery. Červeně jsou zvýrazněny plochy, které nejde z kamer kvalitně otexturovat. (b) Vyrenderovaná textura s uloženými normálami v prvním průchodu algoritmu ze stejného pohleduj jaklo (a).}
@@ -394,7 +425,7 @@ Musíme brát v úvahu, že máme dvě rozdílné množiny fotografií. Nejprve 
 
 
 \chapter{Implementace}
-
+\label{chap:impl}
 \section{Požadavky na implementaci}
 
 Aplikace by měla provádět texturování v reálném čase, proto je základním požadavkem rychlost zobrazování. Pro programy zobrazující 3D grafiku se jako dostatečná frekvence zobrazování snímků uvažuje 30fps. Dalším důležitým požadavkem je kvalita výsledných textur, která by měla být co nejlepší. To znamená zejména minimální výskyt švů mezi texturami a omezení chybného otexturování zastíněných oblastí. V optimálním případě by se render modelu z místa shodného s pozicí některé vstupní kamery neměl lišit od pořízené fotografie. Mezi další požadavky patří přenositelnost programu na více platforem a jednoduché ovládání pomocí grafického rozhraní.
@@ -618,13 +649,16 @@ if(isNormal) {
 
 Klastrování je omezeno na 5 iterací. To se ukázalo jako dostatečné, protože klastry jsou v datech obvykle výrazné a algoritmus konverguje ke správnému rozdělení velmi rychle.
 
-\subsection{Ostatní průchody}
+\subsection{Další průchody}
 
-V aplikaci jsou implementovány ještě některé další jednoduché průchody. Pro vizualizaci vstupních kamer a lepší orientaci ve scéně slouží \texttt{RadarRenderPass}, který v rohu okna zobrazuje 2D pohled na scénu shora, kde jsou znázorněny pozice a směry všech vstupních kamer a také pozice virtuální kamery. Dále jsou zde zvýrazněné aktuálně využívané kamery pro texturování. \texttt{CameraPointsRenderPass} do scény umožňuje vykreslit body na pozice vstupních kamer.
+V aplikaci jsou implementovány ještě některé další jednoduché průchody. Pro vizualizaci vstupních kamer a lepší orientaci ve scéně slouží \texttt{RadarRenderPass}, který v rohu okna zobrazuje 2D pohled na scénu shora, kde jsou znázorněny pozice a směry všech vstupních kamer a také pozice virtuální kamery. Dále jsou zde zvýrazněné aktuálně využívané kamery pro texturování. \texttt{CameraPointsRenderPass} do scény umožňuje vykreslit body na pozice vstupních kamer, to je vhodné zejména pro kontrolu správného načtení vstupních dat a testování.
 
 \chapter{Testování}
+\label{chap:testing}
+
 
 \chapter{Závěr}
+\label{chap:end}
 
 
 \renewcommand\refname{Zdroje}
