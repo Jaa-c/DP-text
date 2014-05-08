@@ -507,17 +507,17 @@ float computeWeight(in int index, in vec3 N, out vec2 coords, in float dl = dirL
 
 Pokrytí celé scény pomocí vyhledávání neotexturovaných ploch je řešené jako samostatný průchod \texttt{TexturingPrePass}, který je vždy spuštěn před texturovacím průchodem. Texturovací průchod ale není závislý na prvním průchodu. To má velkou výhodu v tom, že první průchod může být volitelný, a je možné ho za běhu aplikace zapínat a vypínat. K tomu jsou dva hlavní důvody - první průchod je výpočetně poměrně náročný a výrazně zpomaluje běh aplikace, což může být problém na méně výkoném hardwaru. Dále tento průchod vyžaduje OpenGL 4.3 s rozšířením \texttt{GL\textunderscore NV\textunderscore shader\textunderscore atomic\textunderscore float}, které je v současnosti dostupné pouze na kartách od výrobce NVIDIA. Aplikaci je tedy možné používat i bez tohoto průchodu, ale v některých scénách budou výsledky vizuálně horší.
 
-Jak již bylo popsáno v sekci \ref{sec:photo-choosing}, texturovací průchod nejprve zjistí, které plochy není možné otexturovat. To zjistí výpočtem váhy, která probíhá stejně jako v texturovacím průchodu. Pokud je váha 0, fragment nelze otexturovat. V tom případě se do textury vykreslí aktuální normála. Vykreslování do textury je v OpenGL standardní operace a jde realizovat jednoduše. Poté je potřeba texturu přečíst a zjistit, které směry jsou v textuře uloženy. To ale není úplně jednoduché, protože textura je uložena v paměti na GPU. Kopírovat texturu v každém framu do RAM je velmi náročné a real-time aplikaci nepoužitelné. proto jsem se rozhodl provést klastrování normál na GPU pomocí výpočetních shaderů.
+Jak již bylo popsáno v sekci \ref{sec:photo-choosing}, texturovací průchod nejprve zjistí, které plochy není možné otexturovat. To zjistí výpočtem váhy, která probíhá stejně jako v texturovacím průchodu. Pokud je váha 0, fragment nelze otexturovat. V tom případě se do textury vykreslí aktuální normála. Vykreslování do textury je v OpenGL standardní operace a jde realizovat jednoduše. Poté je potřeba texturu přečíst a zjistit, které směry jsou v textuře uloženy. To ale není úplně jednoduché, protože textura je uložena v paměti na GPU. Kopírovat texturu v každém framu do RAM je velmi náročné a real-time aplikaci nepoužitelné. Proto jsem se rozhodl provést klastrování normál na GPU pomocí výpočetních shaderů.
 
 Výpočetní shadery jsou poměrně nová technologie, dostupná od OpenGL 4.3. Tyto shadery narozdíl od ostatních nepatří do zobrazovacího řetězce a nepodílí se přímo na renderingu. Naopak tyto shadery umožňují provádět na GPU obecné výpočty, které s grafikou vůbec nemusí souviset. Architektura GPU je masivně paralelní, proto je na GPU vhodné provádět pouze výpočty, které jdou ve velkém měřítku paralelizovat. Výpočetní shadery jsou podobné technologiím CUDA nebo OpenCL, které také slouží k provádění obecných výpočtů na GPU. Výhoda výpočetních shaderů spočívá v tom, že je velmi snadné je zapojit do aplikace, které již OpenGL používá, protože mapování bufferů či textur probíhá úplně stejně, jako u běžných shaderů. Zároveň výpočetní shadery také používají jazyk GLSL, který poskytuje řadu užitečných funkcí. 
 
-Pro klastrování normál je použit algoritmus k-means \cite{Lloyd82}. Tento algoritmus na začátku rozdělí data náhodně do $k$ skupin. Poté spočítá centroid každého klastru a porovná prvky se všemi centroidy. Pokud je prvek blíže k některému centroidu z jiného klastru, je do tohoto klastru přesunut. Takto algoritmus iterativně pokračuje, dokud existuje prvek, který se v dané iteraci přesunuje do jiného clusteru. Případně je možné algoritmus ukončit po daném počtu iterací. Algoritmus je primárně určen pro klastrování bodů v prostoru, ale je možné ho použít i pro klastrování vektorů, kdy vzdálenost směrů určuje úhel mezi vektory.
+Pro klastrování normál je použit algoritmus k-means \cite{Lloyd82}. Tento algoritmus na začátku rozdělí data náhodně do $k$ skupin. Poté spočítá centroid každého klastru a porovná prvky se všemi centroidy. Pokud je prvek blíže k některému centroidu z jiného klastru, je do tohoto klastru přesunut. Takto algoritmus iterativně pokračuje, dokud existuje prvek, který se v dané iteraci přesunuje do jiného clusteru. Případně je možné algoritmus ukončit po daném počtu iterací. Algoritmus je primárně určen pro klastrování bodů v prostoru, ale je možné ho použít i pro klastrování vektorů, kdy vzdálenost směrů určuje úhel mezi vektory. Pro algoritmus je předem nutné zadat počet klastrů, ale některé klastry mohou zůstat na konci algoritmu prázdné. Během testování se ukázalo, že dostatečný počet klastrů pro normály je 4. V běžných scénách není pravděpodobné, že by nebyly otexturovány plochy z více jak čtyř význačných směrů.
 
-Algoritmu je vhodný pro paralelní implementaci na GPU. Pro každý pixel vstupní normálové textury se spustí jedno vlákno, které porovná úhel se všemi klastry a určí, zda se normála přesune do jiného klastru. Poté je nutné v rámci všech klastrů spočítat jejich centroid, tedy sečíst všechny normály v klastru a výsledek vydělit počtem normál. Tento krok jde také paralelizovat pomocí jednoho ze základních paralelních algoritmů - redukce.
+Algoritmus je vhodný pro paralelní implementaci na GPU. Pro každý pixel vstupní normálové textury se spustí jedno vlákno, které porovná úhel se všemi klastry a určí, zda se normála přesune do jiného klastru. Poté je nutné v rámci všech klastrů spočítat jejich centroid, tedy sečíst všechny normály v klastru a výsledek vydělit počtem normál. Tento krok jde také paralelizovat pomocí jednoho ze základních paralelních algoritmů - redukce.
 
 Paralelní redukce je algoritmus, který umožňuje paralelně sečíst sekvenci čísel. Funguje tak, že v každé iteraci jedno vlákno sečte dvě unikátní a čísla a uloží částečný výsledek. Tím vznikne z $n$ prvků původní množiny $\frac{n}{2}$ částečných výsledků. Takto se rekurzivně pokračuje, dokud algoritmus nenajde výsledek. Běh algoritmu je znázorněna na obrázku \ref{fig:reduction}.
 
-\begin{figure}[bh]
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth*2/3]{figures/reduction}
 \caption{Obrázek znázorňuje paralelní redukci.}
@@ -525,7 +525,73 @@ Paralelní redukce je algoritmus, který umožňuje paralelně sečíst sekvenci
 \end{center}
 \end{figure}
 
+Při spuštění výpočetního shaderu musíme explicitně zadat, kolik vláken chceme spustit. Vlákna se spouští v tzv. \emph{pracovních skupinách}, kdy vlákna v jedné pracovní skupině mohou vzájemně komunikovat pomocí sdílené paměti.  Pracovní skupiny jsou organizovány ve 3D mřížce, která usnadňuje indexování dat v mřížce. V rámci skupiny se nastavuje \emph{lokální velikost skupiny}, která určuje počet vláken spouštěných ve skupině. Tato lokální velikost je opět tří dimenzionální.  Pokud je tedy lokální velikost skupiny $(128, 1, 1)$, kterou spustíme v pracovní skupině velikosti $(4, 8, 16)$, spustíme 32768 vláken (instancí výpočetního shaderu). Každou instanci lze unikátně identifikovat pomocí systému vestavěných proměnných, které určují index vlákna v rámci lokální velikosti a index pracovní skupiny, ve které je vlákno spuštěno.
 
+Pro zpracování normálové mapy je použita lokální velikost skupiny $(16, 16, 1)$ a počet pracovních skupin se dopočítává podle aktuálního rozlišení obrazovky. Textura je tedy zpracovávána po blocích $16\times16$ pixelů. Toho můžeme využít při inicializaci klastrů. Namísto toho, abychom v první iteraci normály náhodně rozdělili mezi klastry, můžeme vždy normály v jednom bloku vložit do jednoho zvoleného klastru. Protože se dá očekávat, že normály v jednom bloku budou velmi pravděpodobně patřit do jedné plochy, můžeme tímto klastrování urychlit. Po počátečním rozdělení je nutné spočítat centroidy klastrů, to provedeme pomocí výše popsané paralelní redukce. 
+
+Paralelní redukce je provedena v rámci každé pracovní skupiny ve sdílené paměti. Sdílená paměť je velmi rychlá, proto je pro tento typ operace vhodná. Protože máme 4 clustery, nejde provést redukce jednoduše v rámci jednoho pole, protože v částečných součtech během redukce by nešlo určit, která data patří do jakého klastru. Proto je nutné vytvořit pro každý klastr jedno pole s počtem prvků stejným jako je lokální velikost skupiny. V ukázce \ref{code:comp-data} jsou deklarace polí, které se během redukce využívají. Deklarace označené klíčovým slovem \texttt{buffer} jsou v hlavní paměti GPU a jsou přístupné ze všech vláken. Pole označená jako \texttt{shared} jsou ve sdílené paměti, do které mají přístup pouze vlákna v rámci jedné pracovní skupiny.
+
+
+\lstset{
+	morekeywords={uint,coherent,restrict,buffer,layout,Cluster,shared},
+}
+\begin{lstlisting}[caption={Datové struktury potřebné pro sečtení normál pomocí paralelní redukce.},label={code:comp-data},firstnumber=1,float=[ht]]
+struct Cluster {
+	vec3 cntr;
+	uint size;
+};
+coherent restrict layout(std430, binding = 0) buffer destBuffer {
+	Cluster clusters[CLUSTERS];
+	bool moving;
+};
+coherent restrict layout(std430, binding = 1) buffer idxBuffer {
+	uint indices[];
+};
+
+shared vec3 cache[CLUSTERS][SIZE];
+shared uint sizeCache[CLUSTERS][SIZE];
+\end{lstlisting}
+
+
+V ukázce \ref{code:comp-reduction} je zobrazen kompletní algoritmus paralelní redukce. Na řádcích \texttt{1-7} je provedena inicializace dat ve sdílené paměti. Všechna data jsou inicializována na 0, poté jsou inicializována data jednotlivých klastrů. Proměná \texttt{centroidIDX} je index klastru, do kterého přísluší aktuální vlákno. Tato proměnná je v prvním průchodu inicializovaná na základě pozice pracovní skupiny, v dalších iteracích je hodnota načtena z pole \texttt{indices}. Následuje cyklus, který provádí samotnou redukci odděleně pro každý klastr. Po každém cyklu je nutné provést paměťovou synchronizaci vláken pomocí funkce  \texttt{memoryBarrierShared}, která zajistí viditelnost zapsaných výsledků pro všechny vlákna. Zároveň je nutné provést synchronizaci pomocí \texttt{barrier}, která zajistí, že žádné vlákno v rámci skupiny nebude pokračovat, dokud všechny vlákna nedosáhly bariéry. Podmínku na řádce \texttt{21} vždy splní pouze jedno vlákno v pracovní skupině. Toto vlákno přidá pomocí atomické operace výsledek z redukce v dané skupině do bufferu v hlavní paměti. Tím získáme finální výsledek redukce. Atomické operace jsou velmi náročné a je vhodné se jim vyhýbat. V tomto případě je ale atomická operace nad proměnnou provedena pouze jednou pro každou pracovní skupinu, takže nezpůsobí výraznou ztrátu výkonu.
+
+\lstset{
+	emph={[2]barrier,memoryBarrierShared,atomicAdd},
+	emphstyle={[2]\color{BurntOrange}},
+}
+\begin{lstlisting}[caption={Datové struktury potřebné pro sečtení normál pomocí paralelní redukce.},firstnumber=1,label={code:comp-reduction},float=[ht]]
+uint localID = gl_LocalInvocationIndex; //unikatni index v ramci bloku
+for(int i = 0; i < CLUSTERS; ++i) {
+	sizeCache[i][localID] = 0;
+	cache[i][localID] = vec3(0, 0, 0);
+}
+sizeCache[centroidIDX][localID] = int(isNormal);
+cache[centroidIDX][localID] = int(isNormal) * N;
+
+int stepv = (SIZE >> 1); 
+while(stepv > 0) { //reduction over data in each working group
+	if (localID < stepv) {
+		for(int i = 0; i < CLUSTERS; ++i) {
+			sizeCache[i][localID] += sizeCache[i][localID + stepv];
+			cache[i][localID] += cache[i][localID + stepv];
+		}
+	}
+	memoryBarrierShared();
+	barrier();
+	stepv = (stepv >> 1);
+}
+if (localID == 0) {
+	for(int i = 0; i < CLUSTERS; ++i) {
+		if(sizeCache[i][0] != 0) atomicAdd(clusters[i].size, sizeCache[i][0]);
+		if(cache[i][0].x != 0) atomicAdd(clusters[i].cntr.x, cache[i][0].x);
+		if(cache[i][0].y != 0) atomicAdd(clusters[i].cntr.y, cache[i][0].y);
+		if(cache[i][0].z != 0) atomicAdd(clusters[i].cntr.z, cache[i][0].z);
+	}
+}
+\end{lstlisting}
+
+
+Protože na výpočetních shaderech není možné synchronizovat všechna vlákna napříč pracovními skupinami, není možné po provedení redukce vydělit získaný centroid počtem vláken a pokračovat v klastrování. Jediný způsob, jak zajistit globální synchronizaci je spustit nový shader. Proto jsou data z paralelní redukce zkopírována na CPU, kde proběhne výpočet a normalizace centroidu a poté je spuštěn nový shader, na kterém je provedeno klastrování. Přenos klastrů z GPU na CPU není problém, protože každý klastr obsahuje pouze jeden vektor a počet normál v klastru. 
 
 
 \chapter{Testování}
