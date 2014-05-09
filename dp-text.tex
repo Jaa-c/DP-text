@@ -47,7 +47,7 @@
 \renewcommand*\lstlistingname{Zdrojový kód}
 \usepackage{color}
 \usepackage[usenames,dvipsnames]{xcolor}
-
+\usepackage{tabularx}
 \usepackage{textcomp}
 
 
@@ -656,6 +656,115 @@ V aplikaci jsou implementovány ještě některé další jednoduché průchody.
 \chapter{Testování}
 \label{chap:testing}
 
+Jsou provedeny 2 základní druhy testování. Jednak jde o testování výkonu aplikace a dále potom testování vizuální kvality výsledných rendererů. Testování probíhalo na několika odlišných scénách.
+
+Veškeré testování probíhalo v následující konfiguraci:
+\begin{itemize}
+\item CPU:  Intel Core i5 3210M,  2,5 GHz, 3MB L2 cache
+\item GPU:  NVIDIA GeForce GT630M, 2GB paměti, proprietární ovladač verze 331.49
+\item RAM: 8GB  DDR3, 1.6GHz
+\item OS: OpenSuse 13.1 64bit, linuxové jádro verze 3.11.10
+\item Překladač: gcc 4.8.1
+\item Rozlišení použité pro rendering: $1366\times678$px
+\end{itemize}
+
+\section{Popis testovacích scén}
+
+\subsection{Model 1}
+Jedná se o rekonstruovaný blok z Langweilova modelu Prahy [TODO]. Data jsou zapůjčena od Muzea hlavního města Prahy. Data obsahují:
+\begin{itemize}
+\item 3D model: 970 trojúhelníků a 2910 vrcholů
+\item Fotografie: 321 fotografií v rozlišení $4094\times4096$
+\end{itemize}
+
+\subsection{Model 2}
+Jde o rekonstrukci sochy.
+\begin{itemize}
+\item 3D model: TODO
+\item Fotografie: TODO
+\end{itemize}
+
+\section{Testování výkonu}
+
+\subsection{Testování doby renderingu}
+
+Testování probíhalo pomocí měření doby renderingu scény, kdy se kamera pohybovala kolem středu objektu po kružnici a vždy se dívala na střed objektu. Měření času je prováděno na GPU pomocí OpenGL časovačů. Ty používají asynchroní dotazy, které přesně změří dobu renderingu, protože čas může být zaznamenán až po dokončení všech předchozích vykonávaných OpenGL funkcí. Zároveň za pomoci techniky dvou bufferů se vždy odečítá čas o jeden snímek později. To umožňuje odečítat čas bez nutnosti čekat na dokončení renderingu, takže měření času se nijak neprojeví na výsledném výkonu.
+
+\lstset{
+  morekeywords={GLuint64,GLuint},
+  emph={[1]glBeginQuery,glBeginQuery,glEndQuery,glGenQueries, glGetQueryObjectui64v,swapQueries,start,end,GLTimer},
+}
+\begin{lstlisting}[caption={Asynchroní měření času na GPU.},firstnumber=1,label={code:time},float=[ht]]
+class GLTimer {
+	GLuint queryID[2];
+	uint queryBack, queryFront;
+		
+	void swapQueries() {
+		if(queryBack) {
+			queryBack = 0, queryFront = 1;
+		}
+		else {
+			queryBack = 1, queryFront = 0;
+		}
+	}
+public:
+	GLTimer() {
+		queryBack = 0, queryFront = 1;
+		glGenQueries(2, &queryID[0]);
+		//odstraneni chyb pri prvnim mereni
+		glBeginQuery(GL_TIME_ELAPSED, queryID[queryFront]); 
+	}
+	
+	void start() {
+		glBeginQuery(GL_TIME_ELAPSED, queryID[queryBack]);
+	}
+	
+	float end() {
+		glEndQuery(GL_TIME_ELAPSED);
+		GLuint64 time;
+		glGetQueryObjectui64v(queryID[queryFront], GL_QUERY_RESULT, &time);
+		swapQueries();
+		return time / 1000000.0f; //vraci uplynuly cas v ms
+	}
+}
+\end{lstlisting}
+
+V ukázce \ref{code:time} je zobrazena implementace měření času. V metodě \texttt{start} se spustí časovač na zadním bufferu a v metodě \texttt{end} se tento časovač ukončí. V tuto chvíli není možné časovač odečíst, protože nemusely být dokončeny všechny asynchroní příkazy na GPU. Proto je odečten časovač na předním bufferu, který byl spuštěn a ukončen v minulém framu a nyní již musí být dostupný. Poté se buffery přehodí. Časovač měří čas s udávanou přesností $10^{-9}s$.
+
+\subsubsection*{Model 1}
+První testování je provedeno pro jeden oběh virtuální kamery kolem modelu, to odpovídá 2094 měřeným snímků. Při tomto měření nebyl zapnutý průchod pro kompletní otexturování scény.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/data-1}
+\caption{Obrázek znázorňuje paralelní redukci.}
+\label{fig:data-1}
+\end{center}
+\end{figure}
+
+Na grafu \ref{fig:data-1} jsou znázorněna měření při použití různého množství fotografií (1, 5, 15, 30). Na grafu jsou očividné výrazné výchylky v některých snímcích. Tyto výchylky jsou způsobené nahráváním plné velikosti textury z CPU na GPU. Ve chvíli, kdy je fotografie načtena z  HDD, proběhne její nahrání z RAM do GPU a to způsobí výrazné zpomalení v daném snímku v závislosti na velikosti nahrávané textury. Pokud se sejde více fotografií v jednom snímku, je toto prodlení znásobené. Tento problém se mi bohužel nepodařilo odstranit. Při běžném prohlížení modelu je toto znatelné, ale není to tak výrazný problém. Při rychlejším pohybu kamery se snímky z HDD nestíhají načítat a obvykle se načtou až při zastavení kamery. V tu chvíli uživatel krátkodobý pokles fps nezaznamená.
+
+\begin{table}[ht]
+\begin{center}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}%
+\begin{tabularx}{\textwidth}{ |l|R|R|R|R| }
+\hline
+ & \textbf{1} & \textbf{5} & \textbf{15} & \textbf{30} \\ \hline
+\textbf{Minimum [ms]} & 3,71 & 3,89 & 4,77 & 6,16 \\ \hline
+\textbf{Maximum  [ms]} & 57,28 & 222,44 & 217,37 & 110,41 \\ \hline
+\textbf{Průměr [ms]} & 5,36 & 5,81 & 6,62 & 8,16 \\ \hline
+\textbf{Průměr [fps]} & 186,48 & 172,17 & 151,00 & 122,48 \\ \hline
+\end{tabularx}
+
+\caption{capt}
+\label{tab:test-1}
+
+\end{center}
+\end{table}
+
+
+
+\section{Testování kvality renderů}
 
 \chapter{Závěr}
 \label{chap:end}

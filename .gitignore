@@ -1,7 +1,7 @@
 temp/
 info-todo
 figures/source/
-
+data/
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
