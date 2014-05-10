@@ -674,14 +674,14 @@ Veškeré testování probíhalo v následující konfiguraci:
 Jedná se o rekonstruovaný blok z Langweilova modelu Prahy [TODO]. Data jsou zapůjčena od Muzea hlavního města Prahy. Data obsahují:
 \begin{itemize}
 \item 3D model: 970 trojúhelníků a 2910 vrcholů
-\item Fotografie: 321 fotografií v rozlišení $4094\times4096$
+\item Fotografie: 321 fotografií v rozlišení $4094\times4096$ px
 \end{itemize}
 
 \subsection{Model 2}
 Jde o rekonstrukci sochy.
 \begin{itemize}
-\item 3D model: TODO
-\item Fotografie: TODO
+\item 3D model: 704 940 trojúhelníků a 2 114 820 vrcholů.
+\item Fotografie: 37 fotografií v rozlišení $2400\times3200$ px
 \end{itemize}
 
 \section{Testování výkonu}
@@ -732,37 +732,91 @@ public:
 V ukázce \ref{code:time} je zobrazena implementace měření času. V metodě \texttt{start} se spustí časovač na zadním bufferu a v metodě \texttt{end} se tento časovač ukončí. V tuto chvíli není možné časovač odečíst, protože nemusely být dokončeny všechny asynchroní příkazy na GPU. Proto je odečten časovač na předním bufferu, který byl spuštěn a ukončen v minulém framu a nyní již musí být dostupný. Poté se buffery přehodí. Časovač měří čas s udávanou přesností $10^{-9}s$.
 
 \subsubsection*{Model 1}
-První testování je provedeno pro jeden oběh virtuální kamery kolem modelu, to odpovídá 2094 měřeným snímků. Při tomto měření nebyl zapnutý průchod pro kompletní otexturování scény.
+První testování je provedeno pro jeden oběh virtuální kamery kolem modelu, to odpovídá 2094 měřeným snímkům. Při tomto měření nebyl zapnutý průchod pro doplňování neotexturovaných ploch.
 
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/data-1}
-\caption{Obrázek znázorňuje paralelní redukci.}
+\caption{Graf zobrazující čas renderování snímku při použití různého množství vstupních fotografií.}
 \label{fig:data-1}
 \end{center}
 \end{figure}
 
-Na grafu \ref{fig:data-1} jsou znázorněna měření při použití různého množství fotografií (1, 5, 15, 30). Na grafu jsou očividné výrazné výchylky v některých snímcích. Tyto výchylky jsou způsobené nahráváním plné velikosti textury z CPU na GPU. Ve chvíli, kdy je fotografie načtena z  HDD, proběhne její nahrání z RAM do GPU a to způsobí výrazné zpomalení v daném snímku v závislosti na velikosti nahrávané textury. Pokud se sejde více fotografií v jednom snímku, je toto prodlení znásobené. Tento problém se mi bohužel nepodařilo odstranit. Při běžném prohlížení modelu je toto znatelné, ale není to tak výrazný problém. Při rychlejším pohybu kamery se snímky z HDD nestíhají načítat a obvykle se načtou až při zastavení kamery. V tu chvíli uživatel krátkodobý pokles fps nezaznamená.
+
+Na grafu \ref{fig:data-1} jsou znázorněna měření při použití různého množství fotografií (1, 5, 15, 30). Na grafu jsou očividné výrazné výchylky v některých snímcích. Tyto výchylky jsou způsobené nahráváním plné velikosti textury z CPU na GPU. Ve chvíli, kdy je fotografie načtena z  HDD, proběhne její nahrání z RAM do GPU a to způsobí výrazné zpomalení v daném snímku v závislosti na velikosti nahrávané textury. Pokud se sejde více fotografií v jednom snímku, je toto prodlení znásobené. Tento problém se mi bohužel nepodařilo odstranit. Při běžném prohlížení modelu je toto znatelné, ale není to tak výrazný problém. Při rychlejším pohybu kamery se snímky z HDD nestíhají načítat a obvykle se načtou až při zastavení kamery. V tu chvíli uživatel krátkodobý pokles fps nezaznamená. V tabulce \ref{fig:data-1} jsou zobrazena data z grafu \ref{fig:data-1}. 
+
+\begin{table}[h]
+\begin{center}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}%
+\begin{tabularx}{\textwidth}{ |l|R|R|R|R| }
+\hline
+\textbf{Počet fotografií:}  & \textbf{1} & \textbf{5} & \textbf{15} & \textbf{30} \\ \hline
+\textbf{Minimum [ms]} & 3,71 & 3,89 & 4,77 & 6,16 \\ \hline
+\textbf{Maximum  [ms]} & 57,28 & 222,44 & 217,37 & 110,41 \\ \hline
+\textbf{Průměr [ms]} & 5,36 & 5,81 & 6,62 & 8,16 \\ \hline
+\textbf{Průměr [fps]} & 186,48 & 172,17 & 151,00 & 122,48 \\ \hline
+\end{tabularx}
+\caption{Tabulka zobrazuje hraniční a průměrné hodnoty z grafu \ref{fig:data-1}.}
+\label{tab:test-1}
+
+\end{center}
+\end{table}
+\noindent Data ukazují, že počet použitých fotografií zpomaluje renderování, ale není to během vykreslování zásadní faktor. Při použití 30ti fotografií je vykreslování pomalejší o $30\%$ než při použití 5ti fotografií. 
+
+Pro potvrzení předchozího tvrzení, že výrazné výchylky způsobuje načítání fotografií s velkým rozlišením do GPU jsem provedl měření, při kterém bylo načítání originálních velikostí vypnuté. V tomto měření se žádné výkyvy neprojevily, žádný snímek nepřekročil 11ms. Výsledky měření jsou zobrazeny v grafu \ref{fig:data-2}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/data-2}
+\caption{Graf zobrazující čas renderování snímku při použití různého množství vstupních fotografií pouze za použití náhledů.}
+\label{fig:data-2}
+\end{center}
+\end{figure}
+
+V následujícím testu je porovnán běh aplikace při použití deseti vstupních fotografií se zapnutým průchodem pro doplňování neotexturovaných ploch a bez tohoto průchodu, výsledky jsou zobrazeny v grafu \ref{fig:data-3}.  
+
+\begin{figure}[hb]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/data-3}
+\caption{Graf zobrazující čas renderování snímku při použití různého množství vstupních fotografií bpouze za použití náhledů.}
+\label{fig:data-3}
+\end{center}
+\end{figure}
+
+V grafu je vidět, že při zapnutí obou průchodů je rendering výrazně pomalejší, průměrný čas pro vyrenderování snímku je 65,41ms, to odpovídá 15,3 fps. V tomto případě již nemůže mluvit o real-time renderingu, jde spíše o interaktivních fps.  Oproti tomu samotný texturovací průchod má průměrnou dobu vykreslení snímku 5,60ms (176 fps). Dále je při obou zapnutých  průchodech vidět výrazný nárůst vrcholů způsobených načítáním textur do GPU. To je dané tím, že při pomalejším renderingu snímků se stíhají nahrát plné velikosti všech fotografií, takže je jejich přenos do GPU mnohem častější.
+
+\subsubsection*{Model 2}
+
+První testování proběhlo stejně jako v předchozím případě bez zapnutého průchodu pro doplňování neotexturovaných ploch. Tento model má poměrně jednoduchou geometrii a tento průchod pro něj nepřináší vylepšené texturování, proto nebyl při testování vůbec použit. 
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/data-4}
+\caption{Graf zobrazující čas renderování snímku při použití různého množství vstupních fotografií.}
+\label{fig:data-4}
+\end{center}
+\end{figure}
+
+V grafu je zobrazeno podobné chování, jako u předchozího modelu. Při načítání fotografií je znatelné zpomalení vykreslování, ale protože tento model má menší rozlišení fotografií. maximální časy nejsou tak výrazné. Celkově je renderování pomalejší, ale to je způsobeno zejména výrazně složitějším modelem, který má přes 700 tisíc trojúhelníků. Data jsou opět shrnuta v tabulce \ref{tab:test-4}.
 
 \begin{table}[ht]
 \begin{center}
 \newcolumntype{R}{>{\raggedleft\arraybackslash}X}%
 \begin{tabularx}{\textwidth}{ |l|R|R|R|R| }
 \hline
- & \textbf{1} & \textbf{5} & \textbf{15} & \textbf{30} \\ \hline
-\textbf{Minimum [ms]} & 3,71 & 3,89 & 4,77 & 6,16 \\ \hline
-\textbf{Maximum  [ms]} & 57,28 & 222,44 & 217,37 & 110,41 \\ \hline
-\textbf{Průměr [ms]} & 5,36 & 5,81 & 6,62 & 8,16 \\ \hline
-\textbf{Průměr [fps]} & 186,48 & 172,17 & 151,00 & 122,48 \\ \hline
+\textbf{Počet fotografií:}  & \textbf{1} & \textbf{5} & \textbf{15} & \textbf{30} \\ \hline
+\textbf{Minimum [ms]} & 12,93 & 12,94 & 13,34 & 14,27 \\ \hline
+\textbf{Maximum  [ms]} & 36,91 & 47,53 & 46,19 & 58,59 \\ \hline
+\textbf{Průměr [ms]} & 14,28 & 14,45 & 14,86 & 15,80 \\ \hline
+\textbf{Průměr [fps]} & 70,03 & 69,22 & 67,32 & 63,28 \\ \hline
 \end{tabularx}
-
-\caption{capt}
-\label{tab:test-1}
-
+\caption{Tabulka zobrazuje hraniční a průměrné hodnoty z grafu \ref{fig:data-4}.}
+\label{tab:test-4}
 \end{center}
 \end{table}
 
-
+\subsection{Rychlost načítání fotografií z HDD}
+\subsection{Paměťová náročnost aplikace}
 
 \section{Testování kvality renderů}
 
