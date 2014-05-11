@@ -663,32 +663,36 @@ Veškeré testování probíhalo v následující konfiguraci:
 \item CPU:  Intel Core i5 3210M,  2,5 GHz, 3MB L2 cache
 \item GPU:  NVIDIA GeForce GT630M, 2GB paměti, proprietární ovladač verze 331.49
 \item RAM: 8GB  DDR3, 1.6GHz
+\item HDD: SATA I 5400 ot/min
 \item OS: OpenSuse 13.1 64bit, linuxové jádro verze 3.11.10
 \item Překladač: gcc 4.8.1
 \item Rozlišení použité pro rendering: $1366\times678$px
 \end{itemize}
 
-\section{Popis testovacích scén}
+Pro testování byly použity tři odlišné scény. První model je rekonstruovaný blok z Langweilova modelu Prahy\cite{langweil}, zapůjčený od Muzea hlavního města Prahy.  Druhý model je rekonstrukce sochy a poslední model je rekonstrukce jedné stěny sarkofágu.
 
-\subsection{Model 1}
-Jedná se o rekonstruovaný blok z Langweilova modelu Prahy [TODO]. Data jsou zapůjčena od Muzea hlavního města Prahy. Data obsahují:
-\begin{itemize}
-\item 3D model: 970 trojúhelníků a 2910 vrcholů
-\item Fotografie: 321 fotografií v rozlišení $4094\times4096$ px
-\end{itemize}
+\begin{table}[h]
+\begin{center}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}%
+\begin{tabularx}{\textwidth}{|l|R|R|R|R|}
+\hline
+ & \textbf{Trojúhelníků} &\textbf{Vrcholů} & \textbf{Fotografií} & \textbf{Rozlišení} \\ \hline
+\textbf{Model 1} & 970 & 2910 & 321 & $4094\times4096$ \\ \hline
+\textbf{Model 2} & 704940 & 2114820 & 37 & $2400\times3200$ \\ \hline
+\textbf{Model 3} & 769333 & 2307999 & 9 & $3504\times2336$ \\ \hline
+\end{tabularx}
+\caption{Tabulka zobrazuje základní informace o testovacích scénách.}
+\label{tab:test-1}
 
-\subsection{Model 2}
-Jde o rekonstrukci sochy.
-\begin{itemize}
-\item 3D model: 704 940 trojúhelníků a 2 114 820 vrcholů.
-\item Fotografie: 37 fotografií v rozlišení $2400\times3200$ px
-\end{itemize}
+\end{center}
+\end{table}
 
+\newpage %tmp
 \section{Testování výkonu}
 
-\subsection{Testování doby renderingu}
+\subsection{Testování doby vykreslování}
 
-Testování probíhalo pomocí měření doby renderingu scény, kdy se kamera pohybovala kolem středu objektu po kružnici a vždy se dívala na střed objektu. Měření času je prováděno na GPU pomocí OpenGL časovačů. Ty používají asynchroní dotazy, které přesně změří dobu renderingu, protože čas může být zaznamenán až po dokončení všech předchozích vykonávaných OpenGL funkcí. Zároveň za pomoci techniky dvou bufferů se vždy odečítá čas o jeden snímek později. To umožňuje odečítat čas bez nutnosti čekat na dokončení renderingu, takže měření času se nijak neprojeví na výsledném výkonu.
+Testování probíhalo pomocí měření doby vykreslení scény, kdy se kamera pohybovala kolem středu objektu po kružnici a vždy se dívala na střed objektu. Měření času je prováděno na GPU pomocí OpenGL časovačů. Ty používají asynchroní dotazy, které přesně změří dobu renderování, protože čas je zaznamenán až po dokončení všech předchozích vykonávaných OpenGL funkcí. Zároveň za pomoci techniky dvou bufferů se vždy odečítá čas o jeden snímek později. To umožňuje odečítat čas bez nutnosti čekat na dokončení vykreslování, takže měření času se nijak neprojeví na výsledném výkonu.
 
 \lstset{
   morekeywords={GLuint64,GLuint},
@@ -714,11 +718,9 @@ public:
 		//odstraneni chyb pri prvnim mereni
 		glBeginQuery(GL_TIME_ELAPSED, queryID[queryFront]); 
 	}
-	
 	void start() {
 		glBeginQuery(GL_TIME_ELAPSED, queryID[queryBack]);
 	}
-	
 	float end() {
 		glEndQuery(GL_TIME_ELAPSED);
 		GLuint64 time;
@@ -729,7 +731,7 @@ public:
 }
 \end{lstlisting}
 
-V ukázce \ref{code:time} je zobrazena implementace měření času. V metodě \texttt{start} se spustí časovač na zadním bufferu a v metodě \texttt{end} se tento časovač ukončí. V tuto chvíli není možné časovač odečíst, protože nemusely být dokončeny všechny asynchroní příkazy na GPU. Proto je odečten časovač na předním bufferu, který byl spuštěn a ukončen v minulém framu a nyní již musí být dostupný. Poté se buffery přehodí. Časovač měří čas s udávanou přesností $10^{-9}s$.
+V ukázce \ref{code:time} je zobrazena implementace měření času. V metodě \texttt{start} se spustí časovač na zadním bufferu a v metodě \texttt{end} se tento časovač ukončí. V tuto chvíli není možné časovač odečíst, protože nemusely být dokončeny všechny asynchroní příkazy na GPU. Proto je odečten časovač na předním bufferu, který byl spuštěn a ukončen v minulém snímku a nyní již musí být dostupný. Poté se buffery přehodí. Časovač měří čas s udávanou přesností $10^{-9}s$, to je řádově více, než je pro běžné měření potřeba.
 
 \subsubsection*{Model 1}
 První testování je provedeno pro jeden oběh virtuální kamery kolem modelu, to odpovídá 2094 měřeným snímkům. Při tomto měření nebyl zapnutý průchod pro doplňování neotexturovaných ploch.
@@ -737,13 +739,13 @@ První testování je provedeno pro jeden oběh virtuální kamery kolem modelu,
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/data-1}
-\caption{Graf zobrazující čas renderování snímku při použití různého množství vstupních fotografií.}
+\caption{Graf zobrazující čas vykreslování snímku při použití různého množství vstupních fotografií.}
 \label{fig:data-1}
 \end{center}
 \end{figure}
 
 
-Na grafu \ref{fig:data-1} jsou znázorněna měření při použití různého množství fotografií (1, 5, 15, 30). Na grafu jsou očividné výrazné výchylky v některých snímcích. Tyto výchylky jsou způsobené nahráváním plné velikosti textury z CPU na GPU. Ve chvíli, kdy je fotografie načtena z  HDD, proběhne její nahrání z RAM do GPU a to způsobí výrazné zpomalení v daném snímku v závislosti na velikosti nahrávané textury. Pokud se sejde více fotografií v jednom snímku, je toto prodlení znásobené. Tento problém se mi bohužel nepodařilo odstranit. Při běžném prohlížení modelu je toto znatelné, ale není to tak výrazný problém. Při rychlejším pohybu kamery se snímky z HDD nestíhají načítat a obvykle se načtou až při zastavení kamery. V tu chvíli uživatel krátkodobý pokles fps nezaznamená. V tabulce \ref{fig:data-1} jsou zobrazena data z grafu \ref{fig:data-1}. 
+V grafu \ref{fig:data-1} jsou znázorněna měření při použití různého množství fotografií (1, 5, 15 a 30). V měření jsou očividné výrazné výchylky v některých snímcích. Tyto výchylky jsou způsobené nahráváním plné velikosti textury z CPU na GPU. Ve chvíli, kdy je fotografie načtena z  HDD, proběhne její nahrání z RAM do GPU a to způsobí výrazné zpomalení v daném snímku v závislosti na velikosti nahrávané textury. Pokud se sejde více fotografií v jednom snímku, je toto prodlení znásobené. Tento problém se mi bohužel nepodařilo odstranit. Při běžném prohlížení modelu je toto znatelné, ale není to tak výrazný problém. Při rychlejším pohybu kamery se snímky z HDD nestíhají načítat a obvykle se načtou až při zastavení kamery. V tu chvíli uživatel krátkodobý pokles fps nezaznamená. V tabulce \ref{fig:data-1} jsou zobrazena data z grafu \ref{fig:data-1}. 
 
 \begin{table}[h]
 \begin{center}
@@ -763,7 +765,7 @@ Na grafu \ref{fig:data-1} jsou znázorněna měření při použití různého m
 \end{table}
 \noindent Data ukazují, že počet použitých fotografií zpomaluje renderování, ale není to během vykreslování zásadní faktor. Při použití 30ti fotografií je vykreslování pomalejší o $30\%$ než při použití 5ti fotografií. 
 
-Pro potvrzení předchozího tvrzení, že výrazné výchylky způsobuje načítání fotografií s velkým rozlišením do GPU jsem provedl měření, při kterém bylo načítání originálních velikostí vypnuté. V tomto měření se žádné výkyvy neprojevily, žádný snímek nepřekročil 11ms. Výsledky měření jsou zobrazeny v grafu \ref{fig:data-2}
+Pro potvrzení předchozího tvrzení, že výrazné výchylky způsobuje načítání fotografií s velkým rozlišením do GPU, jsem provedl měření, při kterém byl přenos originálních velikostí do GPU vypnutý. V tomto měření se žádné výkyvy neprojevily, žádný snímek nepřekročil 11ms. Výsledky měření jsou zobrazeny v grafu \ref{fig:data-2}
 
 \begin{figure}[ht]
 \begin{center}
@@ -783,21 +785,21 @@ V následujícím testu je porovnán běh aplikace při použití deseti vstupn�
 \end{center}
 \end{figure}
 
-V grafu je vidět, že při zapnutí obou průchodů je rendering výrazně pomalejší, průměrný čas pro vyrenderování snímku je 65,41ms, to odpovídá 15,3 fps. V tomto případě již nemůže mluvit o real-time renderingu, jde spíše o interaktivních fps.  Oproti tomu samotný texturovací průchod má průměrnou dobu vykreslení snímku 5,60ms (176 fps). Dále je při obou zapnutých  průchodech vidět výrazný nárůst vrcholů způsobených načítáním textur do GPU. To je dané tím, že při pomalejším renderingu snímků se stíhají nahrát plné velikosti všech fotografií, takže je jejich přenos do GPU mnohem častější.
+V grafu je vidět, že při zapnutí obou průchodů je vykreslování výrazně pomalejší, průměrný čas pro vyrenderování snímku je 65,41ms, to odpovídá 15,3 fps. V tomto případě již nemůžeme mluvit o real-time renderingu.  Oproti tomu samotný texturovací průchod má průměrnou dobu vykreslení snímku 5,60ms (176 fps). Dále je při obou zapnutých  průchodech vidět výrazný nárůst vrcholů způsobených načítáním textur do GPU. To je dané tím, že při pomalejším vykreslování snímků se stíhají nahrát plné velikosti všech fotografií, takže je jejich přenos do GPU mnohem častější.
 
 \subsubsection*{Model 2}
 
-První testování proběhlo stejně jako v předchozím případě bez zapnutého průchodu pro doplňování neotexturovaných ploch. Tento model má poměrně jednoduchou geometrii a tento průchod pro něj nepřináší vylepšené texturování, proto nebyl při testování vůbec použit. 
+První testování proběhlo stejně jako v předchozím případě, bez zapnutého průchodu pro doplňování neotexturovaných ploch. Model má poměrně jednoduchou geometrii a tento průchod pro něj nepřináší vylepšené texturování, proto nebyl při testování vůbec použit. 
 
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/data-4}
-\caption{Graf zobrazující čas renderování snímku při použití různého množství vstupních fotografií.}
+\caption{Graf zobrazující čas vykreslování snímku při použití různého množství vstupních fotografií.}
 \label{fig:data-4}
 \end{center}
 \end{figure}
 
-V grafu je zobrazeno podobné chování, jako u předchozího modelu. Při načítání fotografií je znatelné zpomalení vykreslování, ale protože tento model má menší rozlišení fotografií. maximální časy nejsou tak výrazné. Celkově je renderování pomalejší, ale to je způsobeno zejména výrazně složitějším modelem, který má přes 700 tisíc trojúhelníků. Data jsou opět shrnuta v tabulce \ref{tab:test-4}.
+V grafu je zobrazeno podobné chování, jako u předchozího modelu. Při načítání fotografií je znatelné zpomalení vykreslování, ale protože tento model má nižší rozlišení fotografií, maximální časy nejsou tak výrazné. Celkově je vykreslování pomalejší než u předchozí scény, ale to je způsobeno zejména výrazně složitějším modelem, který má přes 700 tisíc trojúhelníků. Data jsou opět shrnuta v tabulce \ref{tab:test-4}.
 
 \begin{table}[ht]
 \begin{center}
@@ -815,10 +817,77 @@ V grafu je zobrazeno podobné chování, jako u předchozího modelu. Při nač�
 \end{center}
 \end{table}
 
+\subsubsection*{Model 3}
+
+Tento model má k dipozici pouze 9 fotografií, proto bylo měření provedeno pouze jednou se všemi fotografiemi. Průchod pro doplňování neotexturovaných ploch nebyl zapnutý, protože při použití všech dostupných fotografií nemá tento průchod smysl. Měření bylo provedeno pouze při rotaci objektu o $180^{\circ}$, protože se jedná pouze o jednu rekonstruovanou stěnu a vykreslování zezadu nemá smysl. Výsledky jsou zobrazeny na grafu \ref{fig:data-6}.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/data-6}
+\caption{Graf zobrazující čas vykreslování snímku při devíti vstupních fotografiích.}
+\label{fig:data-6}
+\end{center}
+\end{figure}
+
+Protože byly celou dobu použity všechny fotografie, na grafu nejsou žádné výkyvy způsobené přenosem textur na GPU. Průměrná doba vykreslení snímku byla 20,43ms, to odpovídá 49 fps. Nárůst výkonu na krajích měření je způsoben geometrií objektu, kdy z bočního je geometrie viditelná jen velmi málo.
+
 \subsection{Rychlost načítání fotografií z HDD}
+
+Fotografie v plné velikosti jsou z HDD načítány v nových vláknech. Testoval jsem, jestli je výhodnější načítat fotografie paralelně ve více vláknech nebo jestli je lepší využít pouze jedno vlákno. Měření bylo provedeno na modelu 1 rychlým otočením scény o $180^{\circ}$, kdy byly vyměněny všechny textury. Byl měřen čas od zastavení kamery do načtení poslední fotografie.
+
+\begin{table}[ht]
+\begin{center}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}%
+\begin{tabularx}{\textwidth}{ |l|R|R|R| }
+\hline
+\textbf{Počet fotografií:}  & \textbf{7} & \textbf{15} & \textbf{25} \\ \hline
+\textbf{3 vlákna [ms]} & 1951 & 10424 & 23765  \\ \hline
+\textbf{1 vlákno  [ms]} & 1155 & 8023 & 19094  \\ \hline
+\end{tabularx}
+\caption{Tabulka zobrazuje časy načítání různého množství fotografií z HDD. Zobrazené hodnoty jsou průměrem z deseti měření.}
+\label{tab:test-6}
+\end{center}
+\end{table}
+
+Výsledky ukazují, že je výhodnější načítat fotografie v jediném vláknu. To je způsobené tím, že přístup na HDD není možné paralelizovat a vlákna se musejí střídat. To způsobí, že přístupy na HDD jsou náhodné, oproti tomu při použití jediného vlákna jsou přístupy na HDD více sekvenční, tedy i rychlejší. Proto je ve výsledné aplikaci použito pouze jedno vlákno pro načítání fotografií. Naměřené hodnoty jsou poměrně vysoké, při 15 fotografiích o rozlišení 16MPx je nutné čekat 8 s na kompletní načtení fotografií. Nicméně testování proběhlo na úsporném HDD v notebooku, na stolních počítačích se dají očekávat lepší výsledky.
+
+
 \subsection{Paměťová náročnost aplikace}
 
+Na grafu \ref{fig:massif} je zobrazena paměťová náročnost aplikace při zobrazování modelu 1. K měření byl použit program Valgrind massif. Graf zobrazuje průběh alokované RAM v čase. První nárůst paměti odpovídá načtení náhledů při otevření scény, kterých bylo přibližně 320MB. Poté následuje načtení 5 fotografií v plné velikosti, to odpovídá nárůstu 240MB. V tu chvíli je velikost alokované RAM 814MB. Za tento rozdíl je odpovědné OpenGL, které si z implementačních důvodů alokuje v RAM stejné množství paměti, jako je alokováno na GPU. Paměť alokovaná pomocí OpenGL je hrubě naznačena zelenou oblastí. Nejvýraznější nárůst paměti je způsobený zvýšením počtu používaných fotografií z 5ti na 15. Poté byla provedena rotace scény o $360^{\circ}$, to odpovídá velkým výkyvům uprostřed grafu, kdy byly vždy smazány nepoužívané fotografie a načteny nové. Poté proběhlo opět snížení počtu fotografií na 5, proto je uvolněna velká část paměti v RAM i na GPU. Nakonec je provedena další rotace scény, kdy jsou opět průběžně mazány a nahrávány nové fotografie.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/massif}
+\caption{Graf zobrazující množství paměti v RAM spotřebované při běhu aplikace. Osa x zobrazuje čas v procesorových cyklech a osa y spotřebovanou paměť v bytech.}
+\label{fig:massif}
+\end{center}
+\end{figure}
+
+Z grafu je patrné, že spotřebovaná paměť aplikace je přímo závislá na počtu aktuálně používaných fotografií. Ostatní alokovaná paměť aplikaci je v porovnání s pamětí alokovanou pro fotografie zanedbatelná.
+
 \section{Testování kvality renderů}
+
+\subsection{Texturování v závislosti vstupních parametrech}
+
+V této sekci jsou ukázány rozdíly texturování v závislosti na nastavení volitelných parametrů. Těmi je počet použitých fotografií, využití průchodu pro doplňování neotexturovaných ploch a využití korigovaných směrů kamer.
+
+\subsubsection*{Model 1}
+Korekce směrů kamer se nejvíce projeví při malém počtu použitých fotografií, kdy je důležité mít všechny fotografie co nejlépe vybrané, viz obr.  \ref{fig:test-1}. U každé varianty je zobrazen radar, který zobrazuje pozici a použité směry všech kamer, červeně zvýrazněnou virtuální kameru a modře zvýrazněné kamery použité pro texturování.
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/test-1}
+\caption{Obrázek znázorňuje texturování ze stejného pohledu bez korekce směru kamer (vlevo) a s korekcí směru kamer (vpravo). Pro horní modely je použita pouze jedna fotografie, pro spodní modely tři fotografie.}
+\label{fig:test-1}
+\end{center}
+\end{figure}
+
+U tohoto modelu korekce způsobí velký rozdíl, protože fotografie často obsahovaly pouze části modelu a často kamera nemířila na střed modelu. U ostatních modelů se korekce často vůbec neprojeví.
+
+\subsection{Porovnání s původními fotografiemi}
+
+\subsection{Porovnání s referenčními modely}
 
 \chapter{Závěr}
 \label{chap:end}
