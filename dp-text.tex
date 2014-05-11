@@ -669,7 +669,7 @@ Veškeré testování probíhalo v následující konfiguraci:
 \item Rozlišení použité pro rendering: $1366\times678$px
 \end{itemize}
 
-Pro testování byly použity tři odlišné scény. První model je rekonstruovaný blok z Langweilova modelu Prahy\cite{langweil}, zapůjčený od Muzea hlavního města Prahy.  Druhý model je rekonstrukce sochy a poslední model je rekonstrukce jedné stěny sarkofágu.
+Pro testování byly použity tři odlišné scény. První model je rekonstruovaný blok z Langweilova modelu Prahy\cite{langweil}, zapůjčený od Muzea hlavního města Prahy.  Druhý model je rekonstrukce sochy a poslední model je rekonstrukce jedné stěny sarkofágu. Rendery modelů jsou zobrazeny v sekci  \ref{sec:renders}.
 
 \begin{table}[h]
 \begin{center}
@@ -829,7 +829,7 @@ Tento model má k dipozici pouze 9 fotografií, proto bylo měření provedeno p
 \end{center}
 \end{figure}
 
-Protože byly celou dobu použity všechny fotografie, na grafu nejsou žádné výkyvy způsobené přenosem textur na GPU. Průměrná doba vykreslení snímku byla 20,43ms, to odpovídá 49 fps. Nárůst výkonu na krajích měření je způsoben geometrií objektu, kdy z bočního je geometrie viditelná jen velmi málo.
+Protože byly celou dobu použity všechny fotografie, na grafu nejsou žádné výkyvy způsobené přenosem textur na GPU. Průměrná doba vykreslení snímku byla 20,43ms, to odpovídá 49 fps. Nárůst výkonu na krajích měření je způsoben geometrií objektu, kdy z bočního pohledu je geometrie viditelná jen velmi málo.
 
 \subsection{Rychlost načítání fotografií z HDD}
 
@@ -849,7 +849,7 @@ Fotografie v plné velikosti jsou z HDD načítány v nových vláknech. Testova
 \end{center}
 \end{table}
 
-Výsledky ukazují, že je výhodnější načítat fotografie v jediném vláknu. To je způsobené tím, že přístup na HDD není možné paralelizovat a vlákna se musejí střídat. To způsobí, že přístupy na HDD jsou náhodné, oproti tomu při použití jediného vlákna jsou přístupy na HDD více sekvenční, tedy i rychlejší. Proto je ve výsledné aplikaci použito pouze jedno vlákno pro načítání fotografií. Naměřené hodnoty jsou poměrně vysoké, při 15 fotografiích o rozlišení 16MPx je nutné čekat 8 s na kompletní načtení fotografií. Nicméně testování proběhlo na úsporném HDD v notebooku, na stolních počítačích se dají očekávat lepší výsledky.
+Výsledky ukazují, že je výhodnější načítat fotografie v jediném vláknu. To je způsobené tím, že přístup na HDD není možné paralelizovat a vlákna se musejí střídat. To způsobí, že přístupy na HDD jsou náhodné, oproti tomu při použití jediného vlákna jsou přístupy více sekvenční, tedy i rychlejší. Proto je ve výsledné aplikaci použito pouze jedno vlákno pro načítání fotografií. Naměřené hodnoty jsou poměrně vysoké, při 15 fotografiích o rozlišení 16MPx je nutné čekat 8 s na kompletní načtení fotografií. Nicméně testování proběhlo na úsporném HDD v notebooku, na stolních počítačích se dají očekávat lepší výsledky.
 
 
 \subsection{Paměťová náročnost aplikace}
@@ -867,7 +867,7 @@ Na grafu \ref{fig:massif} je zobrazena paměťová náročnost aplikace při zob
 Z grafu je patrné, že spotřebovaná paměť aplikace je přímo závislá na počtu aktuálně používaných fotografií. Ostatní alokovaná paměť aplikaci je v porovnání s pamětí alokovanou pro fotografie zanedbatelná.
 
 \section{Testování kvality renderů}
-
+\label{sec:renders}
 \subsection{Texturování v závislosti na vstupních parametrech}
 
 V této sekci jsou ukázány rozdíly texturování v závislosti na nastavení volitelných parametrů. Těmi je počet použitých fotografií, využití průchodu pro doplňování neotexturovaných ploch a využití korigovaných směrů kamer. U každé varianty je zobrazen radar, který znázorňuje pozici a použité směry všech kamer, červeně zvýrazněnou virtuální kameru a modře zvýrazněné kamery použité pro texturování. Radar zobrazuje projekci kamer do 2D z pohledu shora, model je vždy uprostřed.
@@ -883,14 +883,14 @@ Korekce směrů kamer se nejvíce projeví při malém počtu použitých fotogr
 \end{center}
 \end{figure}
 
-U tohoto modelu korekce způsobí velký rozdíl, protože fotografie často obsahovaly pouze části modelu a často kamera nemířila na střed modelu. U ostatních modelů se korekce často vůbec neprojeví. V následujících ukázkách tohoto modelu bude korekce vždy zapnutá.
+U tohoto modelu korekce způsobí velký rozdíl, protože fotografie často obsahovaly pouze části modelu a kamera nemířila na střed modelu. U ostatních modelů se korekce obvykle výrazně neprojeví. V následujících ukázkách tohoto modelu bude korekce vždy zapnutá.
 
-Na obrázku \ref{fig:test-2} je zobrazen model s různým počtem použitých fotografií. Pro testovací scény často stačí k otexturování 10 - 15 fotografií, větší počet se již výrazně neprojeví. Zbytečně velký počet fotografií může v některých případech vést ke vzniku švů, které se u menšího počtu neprojeví. 
+Na obrázku \ref{fig:test-2} je zobrazen model s různým počtem použitých fotografií. Pro testovací scény často stačí k otexturování 10 - 15 fotografií, větší počet se již výrazně neprojeví. Zbytečně velký počet fotografií může v některých případech vést ke vzniku švů, proto je lepší nepoužívat maximální počet fotografií, pokud to není nutné.
 
 \begin{figure}[h!]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/test-2}
-\caption{Obrázek znázorňuje texturování ze stejného v závislosti na počtu použitých fotografií. Pro horní modely je použita 1 fotografie (vlevo) a 4 fotografie (vpravo). Spodní modely používají 10 fotografií (vlevo) a 20 fotografií (vpravo).}
+\caption{Obrázek znázorňuje texturování ze stejného pohledu v závislosti na počtu použitých fotografií. Pro horní modely je použita 1 fotografie (vlevo) a 4 fotografie (vpravo). Spodní modely používají 10 fotografií (vlevo) a 20 fotografií (vpravo).}
 \label{fig:test-2}
 \end{center}
 \end{figure}
@@ -905,15 +905,28 @@ Na  obrázku \ref{fig:test-3} je zobrazeno použití průchodu pro doplňování
 \end{center}
 \end{figure}
 
+\newpage %tmp
 \subsubsection*{Model 2}
 
-Druhý model má oproti předchozímu výrazně jednodušší geometrii a každá fotografie ze svého pohledu pokrývá celý objekt. Proto nejsou rozdíly mezi počtem použitých fotografií tak výrazné. Korekce směrů v tomto případě nemá smysl, průchod pro doplňování neotexturovaných ploch také ne, protože jediná fotografie pokryje téměř celý objekt. Na obrázku \ref{fig:test-4} je zobrazený rozdíl mezi použitím jedné a patnácti fotografií ze dvou různých pohledů.
+Druhý model má oproti předchozímu výrazně jednodušší geometrii a každá fotografie ze svého pohledu zabírá celý objekt. Proto nejsou rozdíly mezi počtem použitých fotografií tak výrazné. Korekce směrů v tomto případě nemá smysl, průchod pro doplňování neotexturovaných ploch také ne. Na obrázku \ref{fig:test-4} je zobrazený rozdíl mezi použitím jedné a patnácti fotografií ze dvou různých pohledů.
 
 \begin{figure}[h!]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/test-4}
 \caption{Porovnání renderu s jednou použitou fotografií (vlevo) a 15ti použitými fotografiemi (vpravo).}
 \label{fig:test-4}
+\end{center}
+\end{figure}
+
+\subsubsection*{Model 3}
+
+Třetí model je podobný druhému, jedna fotografie pokrývá většinu modelu a fotografií je velmi malý počet. Na obrázku \ref{fig:test-5} je zobrazen detail při použití jedné a všech fotografií.
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/test-5}
+\caption{Detail modelu otexturovaný jednou fotografií (vlevo nahoře) a všemi devíti fotografiemi (vpravo nahoře). Dole je zobrazena neotexturovaná geometrie (vlevo) a rozdíl mezi horními dvěma obrázky (vpravo).}
+\label{fig:test-5}
 \end{center}
 \end{figure}
 
