@@ -868,26 +868,62 @@ Z grafu je patrné, že spotřebovaná paměť aplikace je přímo závislá na 
 
 \section{Testování kvality renderů}
 
-\subsection{Texturování v závislosti vstupních parametrech}
+\subsection{Texturování v závislosti na vstupních parametrech}
 
-V této sekci jsou ukázány rozdíly texturování v závislosti na nastavení volitelných parametrů. Těmi je počet použitých fotografií, využití průchodu pro doplňování neotexturovaných ploch a využití korigovaných směrů kamer.
+V této sekci jsou ukázány rozdíly texturování v závislosti na nastavení volitelných parametrů. Těmi je počet použitých fotografií, využití průchodu pro doplňování neotexturovaných ploch a využití korigovaných směrů kamer. U každé varianty je zobrazen radar, který znázorňuje pozici a použité směry všech kamer, červeně zvýrazněnou virtuální kameru a modře zvýrazněné kamery použité pro texturování. Radar zobrazuje projekci kamer do 2D z pohledu shora, model je vždy uprostřed.
 
 \subsubsection*{Model 1}
-Korekce směrů kamer se nejvíce projeví při malém počtu použitých fotografií, kdy je důležité mít všechny fotografie co nejlépe vybrané, viz obr.  \ref{fig:test-1}. U každé varianty je zobrazen radar, který zobrazuje pozici a použité směry všech kamer, červeně zvýrazněnou virtuální kameru a modře zvýrazněné kamery použité pro texturování.
+Korekce směrů kamer se nejvíce projeví při malém počtu použitých fotografií, kdy je důležité mít všechny fotografie co nejlépe vybrané, viz obr.  \ref{fig:test-1}. 
 
 \begin{figure}[h!]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/test-1}
-\caption{Obrázek znázorňuje texturování ze stejného pohledu bez korekce směru kamer (vlevo) a s korekcí směru kamer (vpravo). Pro horní modely je použita pouze jedna fotografie, pro spodní modely tři fotografie.}
+\caption{Obrázek znázorňuje texturování ze stejného pohledu bez korekce směru kamer (vlevo) a s korekcí směru kamer (vpravo) s použitím jedné (nahoře) a tří fotografií (dole).}
 \label{fig:test-1}
 \end{center}
 \end{figure}
 
-U tohoto modelu korekce způsobí velký rozdíl, protože fotografie často obsahovaly pouze části modelu a často kamera nemířila na střed modelu. U ostatních modelů se korekce často vůbec neprojeví.
+U tohoto modelu korekce způsobí velký rozdíl, protože fotografie často obsahovaly pouze části modelu a často kamera nemířila na střed modelu. U ostatních modelů se korekce často vůbec neprojeví. V následujících ukázkách tohoto modelu bude korekce vždy zapnutá.
+
+Na obrázku \ref{fig:test-2} je zobrazen model s různým počtem použitých fotografií. Pro testovací scény často stačí k otexturování 10 - 15 fotografií, větší počet se již výrazně neprojeví. Zbytečně velký počet fotografií může v některých případech vést ke vzniku švů, které se u menšího počtu neprojeví. 
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/test-2}
+\caption{Obrázek znázorňuje texturování ze stejného v závislosti na počtu použitých fotografií. Pro horní modely je použita 1 fotografie (vlevo) a 4 fotografie (vpravo). Spodní modely používají 10 fotografií (vlevo) a 20 fotografií (vpravo).}
+\label{fig:test-2}
+\end{center}
+\end{figure}
+
+Na  obrázku \ref{fig:test-3} je zobrazeno použití průchodu pro doplňování neotexturovaných ploch při použití 8mi a 12ti fotografií. Podobného výsledku jde často dosáhnout i zvýšením počtu použitých fotografií.
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/test-3}
+\caption{Obrázek znázorňuje texturování pouze s texturovacím průchodem (vlevo) a s průchodem pro pokrytí neotexturovaných ploch (vpravo). Pro horní renedr je použito 12 fotografií, pro spodní 8.}
+\label{fig:test-3}
+\end{center}
+\end{figure}
+
+\subsubsection*{Model 2}
+
+Druhý model má oproti předchozímu výrazně jednodušší geometrii a každá fotografie ze svého pohledu pokrývá celý objekt. Proto nejsou rozdíly mezi počtem použitých fotografií tak výrazné. Korekce směrů v tomto případě nemá smysl, průchod pro doplňování neotexturovaných ploch také ne, protože jediná fotografie pokryje téměř celý objekt. Na obrázku \ref{fig:test-4} je zobrazený rozdíl mezi použitím jedné a patnácti fotografií ze dvou různých pohledů.
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/test-4}
+\caption{Porovnání renderu s jednou použitou fotografií (vlevo) a 15ti použitými fotografiemi (vpravo).}
+\label{fig:test-4}
+\end{center}
+\end{figure}
 
 \subsection{Porovnání s původními fotografiemi}
 
 \subsection{Porovnání s referenčními modely}
+
+
+\subsection{Chyby při texturování}
+švy, zastínění, málo fotek u rohů -> zvětšit počet fotek
 
 \chapter{Závěr}
 \label{chap:end}
@@ -912,7 +948,7 @@ U tohoto modelu korekce způsobí velký rozdíl, protože fotografie často obs
 \item[SSD] Solid-state drive
 \item[GUI] Graphics user interface, grafické uživatelské rozhraní
 \item[JPEG]  Joint photographic experts group
-\item[fps]  frames per second, obrázků za vteřinu
+\item[fps]  Frames per second, počet snímků za vteřinu
 \end{description}
 
 \chapter{Instalační a uživatelská příručka}
