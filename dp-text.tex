@@ -944,34 +944,40 @@ Třetí model je typově podobný druhému, jedna fotografie pokrývá většinu
 
 \subsection{Porovnání s původními fotografiemi}
 
-V dalším testu jsem porovnával rendery modelů s originálními fotografiemi. Model byl vždy vykreslen ze stejné pozice a směru, jako byla původní kamera. Při testování jsem chtěl provést rozdíl obou obrázků, ale nepodařilo se mi přesně nastavit projekční matici matici v aplikaci, tak, aby přesně odpovídala původní projekční matici kamery. Rozdíly obrázků proto nebyly příliš vypovídající.
+V dalším testu jsem porovnával rendery modelů s originálními fotografiemi. Model byl vždy vykreslen ze stejné pozice a směru, jako byla původní kamera. Při testování jsem chtěl provést rozdíl obou obrázků, ale nepodařilo se mi nastavit projekční matici matici v aplikaci, tak, aby přesně na pixel odpovídala původní projekční matici kamery. Rozdíly obrázků proto nebyly příliš vypovídající.
 
 \subsubsection*{Model 1}
 
 \begin{figure}[h!]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/test-7}
-\caption{TODO.}
+\caption{Nahoře je zobrazena původní zdrojová fotografie a render s jednou použitou fotografií pro texturování. Dole jsou rendery s šesti (vlevo) a dvanácti fotografiemi (vpravo).}
 \label{fig:test-7}
 \end{center}
 \end{figure}
 
+Při testování byla matice vybrané kamery nastavena jako projekční matice virtuální kamery. Na obrázku \ref{fig:test-7} je patrné, že původní fotografie pokryje celý model. Při použití většího množství fotografií pro texturování nenastanou velké rozdíly, protože původní fotografie bude mít váhu velmi blízkou 1 a bude použita pro většinu ploch. Rendery jsou velmi podobné jako při použití jedné fotografie, obsahují jen malé rozdíly.
+
 \subsubsection*{Model 2}
+
+Druhý model má velmi nepravidelnou geometrii, proto se při větším počtu textur výsledný render od původní fotografie liší více než u předchozího modelu, viz obr \ref{fig:test-6}. Otexturování tohoto modelu není tak kvalitní jako u modelu 1, ale textura nemá žádné výrazné prvky, vizuálně to proto není příliš znatelné. Rekonstruovaný objekt má velká nepřesnosti v okolí hlavy a ramen, kde není dostatek obrazových dat (všechny fotografie jsou snímané spíše zespoda). S takto výraznými rozdíly si aplikace neporadí, proto se v okolí hlavy objevují části pozadí.
 
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/test-6}
-\caption{TODO.}
+\caption{Porovnání originální fotografie a renderu ze stejného místa s deseti použitými fotografiemi.}
 \label{fig:test-6}
 \end{center}
 \end{figure}
 
 \subsubsection*{Model 3}
 
+U třetího modelu se mi podařilo přesně nastavit projekci virtuální kamery shodnou se vstupní fotografií. Na obrázku \ref{fig:test-8} jsou proto zobrazeny i rozdíly mezi původní fotografií a vyrenderovanými snímky. Pro jednu fotografii je rozdíl nepatrný, při použití všech devíti fotografií je rozdíl výraznější. Je nutné poznamenat, že snímky byly vyrenderovány v nižším rozlišení než měla původní fotografie, do výsledku se tedy projeví i rozdíly vzniklé resamplingem textur i originální fotografie.
+
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/test-8}
-\caption{TODO.}
+\caption{Obrázek zobrazuje v horní řadě původní fotografii a geometrii objektu. V prostřední řadě je zobrazen render s použitím jedné fotografie a rozdíl tohoto renderu vůči původní fotografii. Ve spodní řadě je zobrazen render z devíti fotografií a jeho rozdíl vůči původní fotografii.}
 \label{fig:test-8}
 \end{center}
 \end{figure}
@@ -981,28 +987,39 @@ V dalším testu jsem porovnával rendery modelů s originálními fotografiemi.
 
 \subsubsection*{Model 1}
 
+U tohoto modelu jsou k dispozici textury, které byly vytvořeny ze stejných zdrojových fotografií pomocí metody popsané v \cite{Sedlacek_phdthesis13}. Na obrázku \ref{fig:test-9} je zobrazen porovnán render z aplikace s referenčními texturami včetně jejich rozdílu. Referenční textury jsou na modelu přesněji namapované a prošly korekcí jasu, proto je výsledný rozdíl poměrně výrazný. Na obrázku jsou chybně otexturované komíny, to je způsobené chybou v 3D geometrii. 
+
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/test-9}
-\caption{TODO.}
+\caption{Porovnání renderu z aplikace (vlevo) s referenčními texturami (vpravo). Uprostřed je zobrazen rozdíl obou renderů.}
 \label{fig:test-9}
 \end{center}
 \end{figure}
 
+Na obrázku \ref{fig:test-10} je zobrazen stejný test z jiného pohledu.
+
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/test-10}
-\caption{TODO.}
+\caption{Porovnání renderu z aplikace (vlevo) s referenčními texturami (vpravo). Uprostřed je zobrazen rozdíl obou renderů.}
 \label{fig:test-10}
 \end{center}
 \end{figure}
 
 
-\subsection{Chyby při texturování}
+\section{Zhodnocení výsledků testování}
+
+Testování ukázalo, že aplikace je schopná dobře otexturovat testovací scény, ale odhalila i řadu nedostatků. Co se týče výkonu, největší problémy způsobuje kopírování velkých textur na GPU. OpenGL aktuálně nenabízí žádnou možnost, jak tento problém řešit. Existuje možnost využít DMA pomocí pixel buffer objektů, které umožňují asynchronní kopírování textur na GPU. Tato funkce je bohužel pouze optimalizací a je závislá na implementaci. Tato metoda navíc neumožňuje zjistit, zda byl asynchronní přenos textury na GPU dokončen, což přináší další velkou komplikaci pro použití v real-time aplikaci. Existují také metody mega textur \cite{mega} založené na metodě virtuálního texturování. Implementace této technologie je zatím pravděpodobně pouze uzavřená. Jako rozumné řešení se nabízí nahrávat textury do GPU po částech, které by se za jeden snímek nahrály bez výrazného zpomalení. Znamenalo by to ale složitější implementaci, protože by bylo nutné určit, jak velké části textury je možné zkopírovat během jednoho snímku. Zároveň by tyto části musely být co největší, aby nebyl přenos příliš dlouhý.
+
+Související je problém načítání velkých textur z HDD, které je sice prováděno asynchronně a aplikaci neblokuje, ale v některých případech je nutné čekat na načtení všech náhledů až desítky vteřin. Dnes jsou již běžné SSD disky, které tento problém výrazně omezí. Zde by bylo možné využít nějakou datovou strukturu, která by inteligentně nahrávala fotografie předem. Zároveň by ale nesměla neustálým nahráváním zpomalovat aplikaci, což byl problém, na který sem narazil při pokusu o implementaci pomocí kd-stromu.
+
+
+
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[width=\textwidth]{figures/err-1}
+\includegraphics{figures/err-1}
 \caption{TODO.}
 \label{fig:err-1}
 \end{center}
@@ -1010,7 +1027,7 @@ V dalším testu jsem porovnával rendery modelů s originálními fotografiemi.
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[width=\textwidth]{figures/err-2}
+\includegraphics{figures/err-2}
 \caption{TODO.}
 \label{fig:err-2}
 \end{center}
@@ -1018,7 +1035,7 @@ V dalším testu jsem porovnával rendery modelů s originálními fotografiemi.
 \begin{figure}[h]
 \begin{center}
 
-\includegraphics[width=\textwidth]{figures/err-3}
+\includegraphics{figures/err-3}
 \caption{TODO.}
 \label{fig:err-3}
 \end{center}
@@ -1026,7 +1043,7 @@ V dalším testu jsem porovnával rendery modelů s originálními fotografiemi.
 
 odlesky, málo fotek
 
-\section{Zhodnocení výsledků testování}
+
 
 \chapter{Závěr}
 \label{chap:end}
