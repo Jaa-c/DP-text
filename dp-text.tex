@@ -983,13 +983,11 @@ U třetího modelu se mi podařilo přesně nastavit projekci virtuální kamery
 \end{figure}
 
 
-\subsection{Porovnání s referenčními modely}
+\subsection{Porovnání s referenčními texturami}
 
-\subsubsection*{Model 1}
+U modelu 1 jsou k dispozici textury, které byly vytvořeny ze stejných zdrojových fotografií pomocí metody popsané v \cite{Sedlacek_phdthesis13}. Na obrázku \ref{fig:test-9} je zobrazen porovnán render z aplikace s referenčními texturami včetně jejich rozdílu. Referenční textury jsou na modelu přesněji namapované a prošly korekcí jasu, proto je výsledný rozdíl poměrně výrazný. Na obrázku jsou chybně otexturované komíny, to je způsobené chybou v 3D geometrii. 
 
-U tohoto modelu jsou k dispozici textury, které byly vytvořeny ze stejných zdrojových fotografií pomocí metody popsané v \cite{Sedlacek_phdthesis13}. Na obrázku \ref{fig:test-9} je zobrazen porovnán render z aplikace s referenčními texturami včetně jejich rozdílu. Referenční textury jsou na modelu přesněji namapované a prošly korekcí jasu, proto je výsledný rozdíl poměrně výrazný. Na obrázku jsou chybně otexturované komíny, to je způsobené chybou v 3D geometrii. 
-
-\begin{figure}[h]
+\begin{figure}[h!]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/test-9}
 \caption{Porovnání renderu z aplikace (vlevo) s referenčními texturami (vpravo). Uprostřed je zobrazen rozdíl obou renderů.}
@@ -999,9 +997,9 @@ U tohoto modelu jsou k dispozici textury, které byly vytvořeny ze stejných zd
 
 Na obrázku \ref{fig:test-10} je zobrazen stejný test z jiného pohledu.
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \begin{center}
-\includegraphics[width=\textwidth]{figures/test-10}
+\includegraphics[width=\textwidth*3/4]{figures/test-10}
 \caption{Porovnání renderu z aplikace (vlevo) s referenčními texturami (vpravo). Uprostřed je zobrazen rozdíl obou renderů.}
 \label{fig:test-10}
 \end{center}
@@ -1014,34 +1012,41 @@ Testování ukázalo, že aplikace je schopná dobře otexturovat testovací sc�
 
 Související je problém načítání velkých textur z HDD, které je sice prováděno asynchronně a aplikaci neblokuje, ale v některých případech je nutné čekat na načtení všech náhledů až desítky vteřin. Dnes jsou již běžné SSD disky, které tento problém výrazně omezí. Zde by bylo možné využít nějakou datovou strukturu, která by inteligentně nahrávala fotografie předem. Zároveň by ale nesměla neustálým nahráváním zpomalovat aplikaci, což byl problém, na který sem narazil při pokusu o implementaci pomocí kd-stromu.
 
-
-
-
-\begin{figure}[h]
+\begin{figure}[h!]
 \begin{center}
 \includegraphics{figures/err-1}
-\caption{TODO.}
+\caption{Švy v texturách na hraně mezi namapovanými fotografiemi.}
 \label{fig:err-1}
 \end{center}
 \end{figure}
 
-\begin{figure}[h]
-\begin{center}
-\includegraphics{figures/err-2}
-\caption{TODO.}
-\label{fig:err-2}
-\end{center}
-\end{figure}
-\begin{figure}[h]
-\begin{center}
+Posledním výraznějším problémem, co se týče výkonu, je průchod pro doplňování neotexturovaných ploch, který výrazně zpomaluje renderování. Tento průchod byl implementován zejména pro ověření funkčnosti, bohužel jsem neměl příliš času věnovat se jeho optimalizaci, pro kterou je rozhodně prostor. Průchod nicméně fungoval na modelu 1 poměrně dobře a vylepšoval kvalitu textur. Na ostatních scénách se neprojevil, protože scény nebyly tak rozsáhlé a pro kvalitní otexturování stačilo i relativně malé množství fotografií.
 
+Z vizuálních chyb se nejčastěji objevují švy mezi jednotlivými texturami, viz obr. \ref{fig:err-1}. Nicméně pomocí použitého váženého schématu při texturování se podařilo výskyt švů omezit, objevují se zejména u krajů modelu a na hranách, kde nejsou výrazně viditelné. 
+
+Další chybou, která se v texturách vyskytuje je nepřesné zarovnání textur vůči modelu, kdy je textura namapována na plochu, pro kterou teoreticky existuje vhodnější textura, obr. \ref{fig:err-3}. Výskyt těchto chyb je zejména podél hran ve 3D geometrii při pohledech, které nejsou na plochu příliš kolmé. Tyto artefakty se často odstraní při zvětšení počtu používaných fotografií.
+
+\begin{figure}[h!]
+\begin{center}
 \includegraphics{figures/err-3}
-\caption{TODO.}
+\caption{Chybně otexturovaná část plochy přesahující texturou.}
 \label{fig:err-3}
 \end{center}
 \end{figure}
 
-odlesky, málo fotek
+Mezi další chyby patří zejména otexturování ploch, které jsou z dané kamery zastíněné, viz \ref{fig:err-2}. Tento problém je výrazně omezen mapováním podle fotografií s nejlepší shodou směru pohledu, ale není úplně eliminován. Zejména při detailních pohledech mohou být tyto chyby výrazné. Chyby je v některých případech možné řešit zvětšením počtu použitých fotografií, kdy je pro zastíněnou plochu použita lepší fotografie. Nicméně univerzální řešení toho problému se nám nalézt nepodařilo, zejména kvůli velkému počtu vstupních fotografií, který neumožňuje efektivní implementaci algoritmů založených na stínových mapách či vrhání paprsků.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics{figures/err-2}
+\caption{Chybné otexturování části plochy, která ze zdrojové kamery není viditelná.}
+\label{fig:err-2}
+\end{center}
+\end{figure}
+
+Na renderch scén je také patrné zobrazení spekulárních odlesků od blesku fotoaparátu, které snižují kvalitu textur. Řešení tohoto problému nebylo vp ráci zahrnuto, nicméně bylo by možné použít metodu navrženou v \cite{Kirschner08}, která na stejných datech odlesky efektivně odstraňovala.
+
+Další vizuální chyby vznikají zejména při použití malého počtu fotografií, kdy není dostatek dat pro kvalitní otexturování všech ploch. Obecně se ale na testovacích scénách ukázalo, že není potřeba co největší počet používaných fotografií, obvykle stačilo 8 - 15 fotografií pro kvalitní otexturování scény a větší počet fotografií se již výrazně neprojevil.
 
 
 
