@@ -75,12 +75,20 @@ David Sedláček, Ph.D.}
 \coverpagestarts
 
 \acknowledgements \noindent \noindent Chtěl bych poděkovat vedoucímu této práce,
-panu Ing. Davidovi Sedláčkovi, Ph.D., za poskytnutí cenných rad a nápadů.
+panu Ing. Davidovi Sedláčkovi, Ph.D., za poskytnutí cenných rad a nápadů. Dále bych chtěl poděkovat Muzeu hlavního města Prahy za poskytnutí dat z Langweilova modelu Prahy.
 
 \declaration{V~Praze,  12. 5. 2014}
  
 \abstractpage
-TBD
+\noindent
+This thesis deals with problem of texturation from photography, i.e. mapping of input photos to reconstructed 3D geometry. We analyze existing solutions for texture mapping and propose our algorithm. We present a real-time view-dependent solution that considers virtual camera position and orientation. By this approach, we try to minimize artifacts and create photo-realistic textures.
+
+\vglue30mm
+
+\noindent{\Huge \textbf{Abstrakt}}
+\vskip 2.75 \baselineskip
+\noindent
+Tato práce se zabývá problematikou texturování rekonstruovaných 3D modelů z fotografií. V práci jsou analyzována současná řešení mapování fotografií a na jejich základě je navržen a implementován algoritmus. Oproti tradičním metodám navržené řešení mapuje fotografie v reálném čase na základě pozice a orientace virtuální kamery. Tím se snaží omezit vznik artefaktů a zároveň vytvořit realisticky působící textury.
 
 \vglue60mm
 
@@ -115,9 +123,9 @@ počítačové rekonstrukce je tedy co nejvěrněji převést reálné objekty d
 digitální podoby. Aplikaci najdeme ve virtuální realitě, online prohlídkách,
 počítačových animacích nebo v herním či filmovém průmyslu.
 
-Tato práce se zabývá jednou částí 3D rekonstrukce a to texturování objektů z
+Tato práce se zabývá jednou částí 3D rekonstrukce a to texturováním objektů z
 fotografií. Na vstupu očekáváme již zrekonstruovaný 3D model (síť trojúhelníků)
-a větší množství (desítky až stovky) kalibrovaných fotografií z různých úhlů. Textura společně s materiálem slouží k popisu povrchu a je důležitá pro vnímání barvy a detailní struktury povrchu \cite{mpg}. Aplikace textury vede z výraznému zvýšení vizuální kvality objektu za relativně malou cenu.  Často je vizuálně i výkonově jednodušší použít detailní texturu a jednoduchý model s menším počtem vrcholů, viz obr. \ref{fig:example}.
+a větší množství (desítky až stovky) kalibrovaných fotografií z různých úhlů. Textura společně s materiálem slouží k popisu povrchu a je důležitá pro vnímání barvy a detailní struktury povrchu \cite{mpg}, viz obr. \ref{fig:example}. Aplikace textury vede z výraznému zvýšení vizuální kvality objektu za relativně malou cenu.  Často je vizuálně i výkonově jednodušší použít detailní texturu a jednoduchý model s menším počtem vrcholů.
 
 \begin{figure}[h]
 \begin{center}
@@ -127,12 +135,12 @@ a větší množství (desítky až stovky) kalibrovaných fotografií z různý
 \end{center}
 \end{figure}
 
-Syntéza textur z fotografií je poměrně složitá, protože 	na výsledný model se díváme i z jiných pohledů, než ze kterých byly pořízeny fotografie. Problémy, které při tomto procesu vznikají jsou popsány zejména v následující kapitole. Cílem této práce je vytvořit aplikaci, která v reálném čase mapuje fotografie na model. Protože aplikace funguje v reálném čase, může zohlednit aktuální pohled virtuální kamery a na základě pozice kamery vybrat nejvhodnější fotografie pro vytvoření textury. K tomu využívá velkého výkonu současných GPU.
+Extrakce textur z fotografií je poměrně složitá, protože 	na výsledný model se díváme i z jiných pohledů, než ze kterých byly pořízeny fotografie. Problémy, které při tomto procesu vznikají jsou popsány v následující kapitole. Cílem této práce je vytvořit aplikaci, která v reálném čase mapuje fotografie na model. Protože aplikace funguje v reálném čase, může zohlednit aktuální pohled virtuální kamery a na základě pozice kamery vybrat nejvhodnější fotografie pro vytvoření textury. K tomu využívá velkého výkonu současných GPU.
 
 \newpage
 \section{Struktura práce}
 
-Práce v kapitole \ref{chap:analysis} rozebírá zadaný problém a popisuje související práce. Poté se věnuje popisu navrhované metody a řešení problémů. Kapitola \ref{chap:impl} popisuje implementaci naší metody. Poté je v kapitole \ref{chap:testing} provedeno testování aplikace na různých scénách. V závěru v kapitole \ref{chap:end} jsou diskutovány výsledky testování a jsou navrženy možné vylepšení metody a implementace.
+Práce v kapitole \ref{chap:analysis} rozebírá zadaný problém a popisuje související práce. Poté se věnuje popisu navrhované metody a řešení problémů. Kapitola \ref{chap:impl} popisuje implementaci naší metody. Poté je v kapitole \ref{chap:testing} provedeno testování aplikace na různých scénách. V závěru v kapitole \ref{chap:end} jsou diskutovány výsledky testování a jsou navržena možná vylepšení metody a implementace.
 
 \chapter{Analýza problému a návrh řešení}
 \label{chap:analysis}
@@ -175,8 +183,8 @@ Existuje několik základních metod, jak mapovat fotografie z více pohledů na
 model, většina metod ale funguje na stejném principu:
 \begin{enumerate}
 \item Extrakce textur z fotografií pomocí vrhání paprsků či jiné podobné metody.
-\item Vzájemná registrace textur
-\item Sloučení textur do výsledné textury 
+\item Vzájemná registrace textur.
+\item Sloučení textur do výsledné textury.
 \end{enumerate}
 
 Jednou z možností je projekce všech fotografií a jejich následné sloučení
@@ -278,7 +286,7 @@ metoda, která nastavuje hodnotu z intervalu $(0,1)$ pixelům, které jsou blíz
 hranic zastínění. Tím jsou odstraněny ostré hrany podél zastíněných částí, které
 jsou velmi často nepřesné a snižují výslednou vizuální kvalitu.
 
-Na principu výběru nejlepší fotografie na základě aktuálního pohledu je založená metoda v článku \cite{Debevec96}. Při mapování jedné fotografie navrhují použití image-space stínových map pro řešení viditelnosti, protože to umožňuje efektivní implementaci pomocí z-bufferu. Při mapování více fotografií na model vybírají pro každý pixel vždy takovou fotografii, která se na daný povrch dívá pod nejlepším úhlem. To samozřejmě přináší viditelné švy, protože sousední pixely mohou pocházet z různých fotografií. Toto řeší zjemněním přechodů pomocí váženého průměru, váhu je určena podle rozdílu úhlu aktuálního pohledu a pohledu původní kamery. Dále pro lepší výsledky mají pixely na okraji fotografie menší váhu, čímž se snaží ještě více eliminovat vznik švů.
+Na principu výběru nejlepší fotografie na základě aktuálního pohledu je založená metoda v článku \cite{Debevec96}. Při mapování jedné fotografie navrhují použití image-space stínových map pro řešení viditelnosti, protože to umožňuje efektivní implementaci pomocí z-bufferu. Při mapování více fotografií na model vybírají pro každý pixel vždy takovou fotografii, která se na daný povrch dívá pod nejlepším úhlem. To samozřejmě přináší viditelné švy, protože sousední pixely mohou pocházet z různých fotografií. Toto řeší zjemněním přechodů pomocí váženého průměru, váha je určena podle rozdílu úhlu aktuálního pohledu a pohledu původní kamery. Dále pro lepší výsledky mají pixely na okraji fotografie menší váhu, čímž se snaží ještě více eliminovat vznik švů.
 
 Dále navrhují jednoduchý algoritmus pro odstranění nežádoucích objektů, které se mohou vyskytovat na zdrojových fotografiích - např. auto či chodci před budovou, kterou chceme otexturovat. Uživatel může ručně vymaskovat tyto objekty předem zvolenou barvou a tyto pixely dostanou při texturování nulovou váhu a budou použita data z jiné fotografie. Pokud nejsou dostupná žádná data, vyplňují vzniklé mezery pomocí syntézy obrazu.
 
@@ -286,7 +294,7 @@ Dále navrhují jednoduchý algoritmus pro odstranění nežádoucích objektů,
 
 \subsection{Princip navrhované metody}
 
-Jak již bylo zmíněno v předchozí sekci, tradiční řešení tohoto problému spočívá ve vytvoření jediné textury pomocí sloučení všech vstupních fotografií dohromady. Tento proces je často velmi náročný a zdlouhavý, na stejných testovacích datech, která jsou použita v této práci, trvá proces extrakce textur řádově hodiny \cite{Kirschner08}. Oproti tomu naše navrhované metoda funguje v reálném čase, kdy provádí projekci vybraných fotografií na model. Načtení scény a předzpracování dat pro naší metodu trvá maximálně několik minut. Druhou výhodou našeho řešení je zahrnutí aktuálního pohledu virtuální kamery, které ostatní metody z principu uvažovat nemůžou. Tím se omezí vznik velkého počtu artefaktů v texturách a to jak vznik švů, tak vznik chyb způsobených vlastním zastíněním. Tyto problémy však kompletně nezmizí a je nutné s nimi počítat. 
+Jak již bylo zmíněno v předchozí sekci, tradiční řešení tohoto problému spočívá ve vytvoření jediné textury pomocí sloučení všech vstupních fotografií dohromady. Tento proces je často velmi náročný a zdlouhavý, na stejných testovacích datech, která jsou použita v této práci, trvá proces extrakce textur řádově hodiny \cite{Kirschner08}. Oproti tomu naše navrhovaná metoda funguje v reálném čase, kdy provádí projekci vybraných fotografií na model. Načtení scény a předzpracování dat pro naší metodu trvá maximálně několik minut. Druhou výhodou našeho řešení je zahrnutí aktuálního pohledu virtuální kamery, které ostatní metody z principu uvažovat nemůžou. Tím se omezí vznik artefaktů v texturách a to jak vznik švů, tak vznik chyb způsobených vlastním zastíněním. Tyto problémy však kompletně nezmizí a je nutné s nimi počítat. 
 
 \begin{figure}[t]
 \begin{center}
@@ -299,12 +307,12 @@ Jak již bylo zmíněno v předchozí sekci, tradiční řešení tohoto problé
 Na obrázku \ref{fig:faust} je zobrazeno namapování fotografie na model bez výrazných geometrických detailů. Pokud je fotografie namapována z podobného úhlu jako je vyfocena původní fotografie, textura působí přirozeně. I když model neobsahuje geometrii okna ani dekorace nad oknem, namapovaná textura vyvolává dojem detailnější 3D geometrie. Oproti tomu stejná textura vyrenderovaná z jiného směru, který je výrazně odlišný od původní fotografie, působí nerealistickým dojmem.
 
 
-Algoritmus se skládá ze tří základních kroků - projekce fotografií na model, výběr nejlepších fotografií pro pokrytí celého modelu a výběr nejvhodnějšího pixelu z více fotografií pro otexturování fragmentu\footnote{Fragmentem je v textu vždy myšlena plocha na 3D modelu, který odpovídá jednomu výslednému pixelu na obrazovce. Stejně, jako je termín fragment používán v OpenGL.}.
+Algoritmus se skládá ze tří základních kroků - projekce fotografií na model, výběr nejlepších fotografií pro pokrytí celého modelu a výběr nejvhodnějšího pixelu z více fotografií pro otexturování fragmentu\footnote{Fragmentem je v textu vždy myšlena plocha na 3D modelu, která odpovídá jednomu výslednému pixelu na obrazovce. Stejně, jako je termín fragment používán v OpenGL.}.
 
 \subsection{Projekce fotografie na model}
 \label{sec:matice-kamery}
 
-Mapování jedné fotografie na model můžeme popsat jako projekci $P: (x, y, z) \to (s, t)$, tedy jako projekci 3D bodů modelu do 2D souřadnice ve fotografii, viz obr. \ref{fig:camera-projection}. Nejběžněji se v počítačové grafice a vidění používá perspektivní projekce, která promítá 3D body $p$ na 2D body $x$ vydělením jejich $z$ souřadnicí \cite{Szeliski}. V homogeních souřadnicích má kanonická perspektivní matice \textbf{P}$_0$ jednoduchou formu:
+Mapování jedné fotografie na model můžeme popsat jako projekci $P: (x, y, z) \to (s, t)$, tedy jako projekci 3D bodů modelu do 2D souřadnic ve fotografii, viz obr. \ref{fig:camera-projection}. Nejběžněji se v počítačové grafice a vidění používá perspektivní projekce, která promítá 3D body $p$ na 2D body $x$ vydělením jejich $z$ souřadnicí \cite{Szeliski}. V homogeních souřadnicích má kanonická perspektivní matice \textbf{P}$_0$ jednoduchou formu:
 \begin{align}
 \label{eq:persp-projection}
 x = 
@@ -355,9 +363,9 @@ x = \textbf{P}\cdotp p_w
 \end{align}
 Existuje celá řada algoritmů pro nalezení matice kamery \cite{Hartley2004}, to ale není součástí této práce, kalibrované kamery jsou poskytnuté na vstupu společně s rekonstruovaným modelem a fotografiemi.
 
-Při mapování fotografie na model je nutné brát v úvahu, že některé části modelu mohou být vzhledem ke kameře zastíněné a nemohou být z dané kamery správně otexturovány. Toto se nejčastěji řeší pomocí stínových map \cite{Stamminger2002}, které se předem vytvoří pro každou kameru. Aby byla tato metoda kvalitní, musí mít stínové mapy dostatečné rozlišení.  Vzhledem k tomu, že aplikace bude využívat až stovky různých kamer, bylo by použití této metody paměťově velmi náročné.
+Při mapování fotografie na model je nutné brát v úvahu, že některé části modelu mohou být vzhledem ke kameře zastíněné a nemohou být z dané kamery správně otexturovány. Toto se nejčastěji řeší pomocí stínových map \cite{Stamminger2002}, které se předem vytvoří pro každou kameru. Aby byla tato metoda kvalitní, musí mít stínové mapy dostatečné rozlišení.  Vzhledem k tomu, že aplikace bude využívat až stovky různých kamer, je využití této metody nereálné. Předem vytvořit stínové mapy pro všechny kamery by bylo extrémně paměťově náročné. Výpočet stínových map pro desítky kamer v reálném čase je v současné době také nereálný.
 
-Další možností je použít algoritmus vrhání paprsků, kdy se z kamery vrhají na scénu paprsky a podle zásahů s modelem se určí, které fragmenty jsou z kamery viditelné. Tato metoda také není příliš vhodná, protože aplikace bude v reálném čase využívat až desítky různých kamer zároveň a vrhání dostatečného množství paprsků z každé kamery by bylo výpočetně příliš náročné. Proto se jako nejlepší varianta se jeví využít jednodušší algoritmus, který spoléhá na seřazení kamer podle podobnosti se směrem virtuální kamery. Kvůli velkému množství vstupních kamer se dá očekávat, že pro většinu možných pohledů virtuální kamery bude existovat kamera s velmi podobným pohledem. Pro takovou kameru bude existovat jen velmi malé množství oblastí, které budou z kamery zastíněné, ale z virtuální kamery budou viditelné. Při texturování se kamery seřadí od ``nejlepší'' a každá kamera bude využita k otexturování oblasti, která ještě není pokrytá předchozí kamerou. Tím se výrazně omezí oblasti, které jsou otexturovány zastíněnou kamerou, ale zároveň jsou viditelné z virtuální kamery. K tomuto pravidlu je navíc zaveden práh, který určuje minimální úhel mezi směrem kamery a normálou plochy, pro který může být daná plocha kamerou otexturována. 
+Další možností je použít algoritmus vrhání paprsků, kdy se z kamery vrhají na scénu paprsky a podle zásahů s modelem se určí, které fragmenty jsou z kamery viditelné. Tato metoda také není příliš vhodná, protože aplikace bude v reálném čase využívat až desítky různých kamer zároveň a vrhání dostatečného množství paprsků z každé kamery by bylo výpočetně příliš náročné. Proto se jako nejlepší varianta se jeví využít jednodušší algoritmus, který spoléhá na seřazení kamer podle podobnosti se směrem virtuální kamery. Kvůli velkému množství vstupních kamer se dá očekávat, že pro většinu možných pohledů virtuální kamery bude existovat kamera s velmi podobným pohledem. Pro takovou kameru bude existovat jen velmi malé množství oblastí, které budou z kamery zastíněné, ale z virtuální kamery budou viditelné. Při texturování se kamery seřadí od ``nejlepší'' a každá kamera bude využita k otexturování oblasti, která ještě není pokrytá předchozí kamerou. Tím se výrazně omezí oblasti, které jsou otexturovány zastíněnou kamerou, ale zároveň jsou viditelné z virtuální kamery. K tomuto pravidlu je navíc zaveden práh, který určuje maximální úhel mezi směrem kamery a normálou plochy, pro který může být daná plocha kamerou otexturována. 
 
 \newpage
 \subsection{Výběr vhodných fotografií pro otexturování modelu}
@@ -394,18 +402,18 @@ Pro otexturování modelu často nestačí vybrat pouze fotografie, které nejl�
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/faces-no-tex}
-\caption{(a) Model otexturovaný šesti fotografiemi z kamer, které nejlépe odpovídají pohledu virtuální kamery. Červeně jsou zvýrazněny plochy, které nejde z kamer kvalitně otexturovat. (b) Vyrenderovaná textura s uloženými normálami v prvním průchodu algoritmu ze stejného pohleduj jaklo (a).}
+\caption{(a) Model otexturovaný šesti fotografiemi z kamer, které nejlépe odpovídají pohledu virtuální kamery. Červeně jsou zvýrazněny plochy, které nejde z kamer kvalitně otexturovat. (b) Vyrenderovaná textura s uloženými normálami v prvním průchodu algoritmu ze stejného pohledu jako (a).}
 \label{fig:faces-no-tex}
 \end{center}
 \end{figure}
 
-K efektivnímu nalezení těchto ploch navrhujeme dvou průchodový algoritmus. Nejprve se vybere daný počet fotografií, které nejlépe odpovídají aktuálnímu pohledu. Poté se v prvním průchodu model vykreslí a zjistí se, které plochy je s daným prahem možné z vybraných fotografií otexturovat. Pokud fragment není možné pokrýt žádnou fotografií, vykreslí se do textury aktuální normála. V prvním průchodu tedy vznikne textura, která obsahuje normály ploch, které je nutné pokrýt, obr. \ref{fig:faces-no-tex} (b). Poté je provedeno klastrování těchto normál a jsou určeny nejvýznamnější směry. Tento přístup je vhodný, protože klastrování jde efektivně provést na GPU bez nutnosti přenosu velkého množství dat mezi GPU a CPU. Poté se vyberou nové fotografie, které nejlépe odpovídají nalezeným směrům (kamery, jejichž směr pohledu je opačný k nalezeným normálám). V druhém průchodu se poté provede výsledný rendering. 
+K efektivnímu nalezení těchto ploch navrhujeme dvou průchodový algoritmus. Nejprve se vybere daný počet fotografií, které nejlépe odpovídají aktuálnímu pohledu. Poté se v prvním průchodu model vykreslí a zjistí se, které plochy je s daným prahem možné z vybraných fotografií otexturovat. Pokud fragment není možné pokrýt žádnou fotografií, vykreslí se do textury aktuální normála. V prvním průchodu tedy vznikne textura, která obsahuje normály ploch, které je nutné pokrýt, obr. \ref{fig:faces-no-tex} (b). Poté je provedeno klastrování těchto normál a jsou určeny nejvýznamnější směry. Tento přístup je vhodný, protože klastrování jde efektivně provést na GPU bez nutnosti přenosu velkého množství dat mezi GPU a CPU. Poté se vyberou nové fotografie, které nejlépe odpovídají nalezeným směrům (kamery, jejichž směr pohledu je opačný k nalezeným normálám). V druhém průchodu se poté provede výsledné renderování. 
 
 \subsection{Texturování z více fotografií}
 \label{sec:fragment-texturing}
-Během renderingu je nutné vyřešit, jak budou otexturovány fragmenty, pro které je možné použít data z více fotografií. Princip je velmi podobný, jako při výběru fotografií, ale snahou při texturování je také omezení vzniku švů a omezení chybného otexturování zastíněných oblastí. Během texturování se již používají pouze fotografie, které byly vybrány v předchozím kroku.
+Během vykreslování je nutné vyřešit, jak budou otexturovány fragmenty, pro které je možné použít data z více fotografií. Princip je velmi podobný, jako při výběru fotografií, ale snahou při texturování je také omezení vzniku švů a omezení chybného otexturování zastíněných oblastí. Během texturování se již používají pouze fotografie, které byly vybrány v předchozím kroku.
 
-Pro každou fotografii je vypočtena váha, fotografie s nejvyšší váhou je použita pro otexturování. Jeden fragment je otexturován pouze z jedné fotografie, není použito žádné vážené míchání barev z více fotografií. To vede k tomu, že dva sousední pixely mohou být vybrány z různých fotografií a tím mohou vznikat viditelné švy. Vážené míchání barev, jako např. v \cite{Debevec96} vede k rozmazání textur a na testovacích datech k vizuálně horšímu výsledku. 
+Pro každou fotografii je vypočtena váha, fotografie s nejvyšší váhou je použita pro otexturování. Jeden fragment je otexturován pouze z jedné fotografie, není použito žádné vážené míchání barev z více fotografií. To vede k tomu, že dva sousední pixely mohou být vybrány z různých fotografií a tím mohou vznikat viditelné švy. Vážené míchání barev, jako např. v \cite{Debevec96} vede k rozmazání textur a na testovacích datech vedlo k vizuálně horšímu výsledku. 
 
 Váha $w_i$ $i$-té fotografie je složena z několika faktorů. V úvahu je brána shoda směru kamery $d_c$ se směrem virtuální kamery $d_v$, stejně jako při výběru fotografií. Dále se uvažuje úhel mezi směrem kamery a normálou plochy $N_f$. Tím se preferují kamery s co nejvíce kolmým pohledem na danou plochu a zároveň je pravděpodobnější, že celá plocha bude otexturována z jedné fotografie. Nakonec je do výpočtu zahrnuta  velikost plochy $s_i$, kterou na fotografii zabírá model, viz výpočet konvexní obálky v sekci \ref{sec:photo-choosing}. Celkový výpočet váhy shrnuje následující rovnice:
 
@@ -421,7 +429,7 @@ w_i &= dot(d_v, d_c) \times \left(\frac{1 + dot(-N_f, d_c)}{1 - cos(\alpha)} + 1
 
 \noindent kde $dot$ značí skalární součin dvou vektorů a $\alpha$ je limitní úhel, který určuje, zda je plochu možné z dané kamery otexturovat.
 
-Musíme brát v úvahu, že máme dvě rozdílné množiny fotografií. Nejprve jsme vybrali fotografie, které nejlépe odpovídají aktuálnímu pohledu. Poté jsme nalezli doplňující fotografie, které pokryjí zbývající plochy. Proto musí rendering probíhat ve dvou částech. Nejprve se aplikuje původní množina fotografií. Až poté se použijí doplňující fotografie, které mohou otexturovat pouze fragmenty, které se nepodařilo otexturovat v první části. Tímto se jednak preferují fotografie blízké aktuálnímu pohledu a zároveň se omezí situace, kdy by doplňující fotografie mohly chybně otexturovat plochy, které jsou z jejich pohledu zastíněné. K tomu i tak může dojít, ale pouze ve velmi omezených částech výsledného renderu, vizuálně to tedy nebude příliš výrazné. 
+Musíme brát v úvahu, že máme dvě rozdílné množiny fotografií. Nejprve jsme vybrali fotografie, které nejlépe odpovídají aktuálnímu pohledu. Poté jsme nalezli doplňující fotografie, které pokryjí zbývající plochy. Proto musí renderování probíhat ve dvou částech. Nejprve se aplikuje původní množina fotografií. Až poté se použijí doplňující fotografie, které mohou otexturovat pouze fragmenty, které se nepodařilo otexturovat v první části. Tímto se jednak preferují fotografie blízké aktuálnímu pohledu a zároveň se omezí situace, kdy by doplňující fotografie mohly chybně otexturovat plochy, které jsou z jejich pohledu zastíněné. K tomu i tak může dojít, ale pouze ve velmi omezených částech výsledného renderu, vizuálně to tedy nebude příliš výrazné. 
 
 
 \chapter{Implementace}
@@ -437,7 +445,7 @@ Společně s OpenGL je využita knihovna GLEW 1.9, která slouží k načítán�
 
 \section{Architektura aplikace}
 
-Architektura aplikace zobrazující 3D grafiku v reálném čase se liší od běžných desktopových aplikací. Základem je efektivně využít zobrazovací řetězec a zajistit distribuci dat mezi aplikací a grafickou kartou tak, aby byly omezeny přenosy dat mezi CPU a GPU, které jsou velmi drahé. Zároveň je důležité, aby všechny zobrazovací průchody měly přístup k aktuálním datům potřebným pro rendering. Samotné OpenGL je možné popsat jako data-driven architekturu, nicméně aplikace využívá tradičního objektového návrhu. Základním prvkem OpenGL aplikace je hlavní smyčka, která neustále provádí aktualizaci scény bez ohledu na uživatelské vstupy. Ty se obvykle ukládají do fronty a jsou zpracovány vždy na začátku každé iterace smyčky. Zjednodušený návrh architektury aplikace je zobrazený na obrázku \ref{fig:architecture}.
+Architektura aplikace zobrazující 3D grafiku v reálném čase se liší od běžných desktopových aplikací. Základem je efektivně využít zobrazovací řetězec a zajistit distribuci dat mezi aplikací a grafickou kartou tak, aby byly omezeny přenosy dat mezi CPU a GPU, které jsou velmi drahé. Zároveň je důležité, aby všechny zobrazovací průchody měly přístup k aktuálním datům potřebným pro vykreslování. Samotné OpenGL je možné popsat jako data-driven architekturu, nicméně aplikace využívá tradičního objektového návrhu. Základním prvkem OpenGL aplikace je hlavní smyčka, která neustále provádí aktualizaci scény bez ohledu na uživatelské vstupy. Ty se obvykle ukládají do fronty a jsou zpracovány vždy na začátku každé iterace smyčky. Zjednodušený návrh architektury aplikace je zobrazený na obrázku \ref{fig:architecture}.
 
 \begin{figure}[ht]
 \begin{center}
@@ -460,7 +468,7 @@ Aplikace na vstupu očekává 3D model a kalibrované fotografie. O načítání
 
 Po načtení kalibrovaných fotografií dochází ke korekci pohledových směrů kamer. Vrcholy modelu jsou projekční maticí promítnuty do souřadnic ve fotografii. Z bodů, které leží uvnitř fotografie se vytvoří konvexní obálka pomocí Grahamova algoritmu \cite{Andrew79}.  Tento algoritmus má optimální asymptotickou složitost $O(n~log(n))$. Základem algoritmu je setřídění bodů podle souřadnice x, po setřídění je potřeba již pouze jeden průchod bodů se složitostí $O(n)$. Algoritmus začne s dvěma body s nejnižší x-ovou souřadnicí. Poté postupně prochází seřazené body a zjišťuje se, zda je vybraný bod nalevo nebo napravo od přímky, která prochází předchozí dvojicí vrcholů. Pokud je nalevo, druhý bod z dvojice nemůže ležet na konvexní obálce a je nahrazen nově nalezeným bodem. Tento proces pokračuje, dokud existuje bod nalevo od posledních dvou bodů na dočasné konvexní obálce. Algoritmus je možné snadno implementovat pomocí zásobníku. Body na dočasně nalezené konvexní obálce se vkládají na vrchol zásobníku. Pokud je nalezen bod vlevo od posledních dvou na zásobníku, odebírají se body ze zásobníku, dokud toto pravidlo opět neplatí. Poté se do zásobníku vloží nově nalezený bod a algoritmus pokračuje.
 
-Po nalezení konvexní obálky je vypočítán centroid bodů na konvexní obálce. Pohledový vektor kamery je poté určen jako vektor procházející středem kamery a nalezeným centroidem. Zároveň je vypočtena plocha konvexní obálky pro pozdější použití při výpočtu váhy textury. Plochu lze snadno spočítat jako jednu polovinu determinantu matic, kde $n$ bodů na konvexní obálce je zapsáno do řádků matice a první bod se opakuje na konci, viz vztah \ref{eq:size}. Body musí být seřazené proti směru hodinových ručiček, což jde snadno zařídit již během Grahamova algoritmu. Po načtení kalibrací kamer následuje načtení samotných fotografií.
+Po nalezení konvexní obálky je vypočítán centroid bodů ležících na konvexní obálce. Pohledový vektor kamery je poté určen jako vektor procházející středem kamery a nalezeným centroidem. Zároveň je vypočtena plocha konvexní obálky pro pozdější použití při výpočtu váhy textury. Plochu lze snadno spočítat jako jednu polovinu determinantu matice, kde $n$ bodů na konvexní obálce je zapsáno do řádků matice a první bod se opakuje na konci, viz vztah \ref{eq:size}. Body musí být seřazené proti směru hodinových ručiček, což jde snadno zařídit již během Grahamova algoritmu.
 
 \begin{align}
 \label{eq:size}
@@ -475,26 +483,26 @@ x_1 & y_1 \\
 = \frac{1}{2} [(x_1 y_2 + x_2 y_3 + \ldots + x_n y_1) - (y_1 x_2 + y_2 x_3 + \ldots + y_n x_1)]
 \end{align}
 
-Vstupní fotografie jsou dodány v nejběžnějším formátu JPEG. Tento formát je však nevhodný pro textury, protože je komprimovaný, jeho načítání je netriviální a příliš pomalé. To by ani nebyl takový problém, pokud bychom fotografie načítali pouze jednou při spuštění aplikace. Problém je v tom, že fotografie mohou mít velké rozlišení a může jich být velké množství. Během testování byly použity scény s několika stovkami fotografií v rozlišení $4094\times4096$px. Takové množství fotografií v nekomprimovaném formátu zabere až desítky GB paměti. Nemůžeme proto očekávat, že je možné nahrát všechny fotografie do RAM a bude je nutné za běhu načítat z pevného disku. Z toho důvodu jsou při prvním načtení scény všechny fotografie načteny z původních JPG souborů a na disk se uloží každá fotografie také v nekomprimovaném formátu RAW. Při každém dalším spuštění se používají již nekomprimovaná data. Toto má nevýhodou v tom, že je nutné mít na disku dostatečné množství místa pro nekomprimovaná data. Nicméně pro běh aplikace v reálném čase je toto nezbytné.
+ Po načtení kalibrací kamer následuje načtení samotných fotografií. Vstupní fotografie jsou dodány v nejběžnějším formátu JPEG. Tento formát je však nevhodný pro textury, protože je komprimovaný, jeho načítání je netriviální a příliš pomalé. To by ani nebyl takový problém, pokud bychom fotografie načítali pouze jednou při spuštění aplikace. Problém je v tom, že fotografie mohou mít velké rozlišení a může jich být velké množství. Během testování byly použity scény s několika stovkami fotografií v rozlišení $4094\times4096$ px. Takové množství fotografií v nekomprimovaném formátu zabere až desítky GB paměti. Nemůžeme proto očekávat, že je možné nahrát všechny fotografie do RAM a bude je nutné za běhu načítat z pevného disku. Z toho důvodu jsou při prvním načtení scény všechny fotografie načteny z původních JPG souborů a na disk se uloží každá fotografie také v nekomprimovaném formátu RAW. Při každém dalším spuštění se používají již nekomprimovaná data. Toto má nevýhodou v tom, že je nutné mít na disku dostatečné množství místa pro nekomprimovaná data. Nicméně pro běh aplikace v reálném čase je toto nezbytné.
 
-Bohužel ani vytvoření RAW souborů není dostatečné pro načítání fotografií v reálném čase. Fotografie o v rozlišení 16MPx má v nekomprimovaném formátu velikost přibližně 45MB. Moderní HDD jsou schopné číst data rychlostí přibližně 150MB/s \cite{hdd}, to znamená, že načtení fotografie z HDD bude trvat minimálně 0.3 sec. I když budeme uvažovat moderní SSD disky s rychlostí čtení přes 500MB/s \cite{ssd}, bude trvat načtení fotografie do RAM téměř 90ms. To je samozřejmě naprosto nepoužitelné pro zobrazování v reálném čase, kdy při 30 fps je nutné vyrenderovat celý snímek za 33ms.
+Bohužel ani vytvoření RAW souborů není dostatečné pro načítání fotografií v reálném čase. Fotografie v rozlišení 16 MPx má v nekomprimovaném formátu velikost přibližně 45 MB. Moderní HDD jsou schopné číst data rychlostí přibližně 150 MB/s \cite{hdd}, to znamená, že načtení fotografie z HDD bude trvat minimálně 0.3 sec. I když budeme uvažovat moderní SSD disky s rychlostí čtení přes 500 MB/s \cite{ssd}, bude trvat načtení fotografie do RAM téměř 90 ms. To je samozřejmě naprosto nepoužitelné pro zobrazování v reálném čase, kdy při 30 fps je nutné vykreslit celý snímek za 33 ms.
 
-Jako řešení se nabízí možnost předem načítat omezené množství fotografií, které se vejde do RAM, aby fotografie byla vždy již načtená ve chvíli, kdy je jí třeba použít. Toto jsme implementovali za pomoci kd-stromu, kdy se načítaly fotografie nejbližší k aktuální pozici. Toto řešení se ukázalo velmi neefektivní, protože nebylo možné načítat dostatečné množství fotografií pro pokrytí všech možných směrů pohybu kamery. Ve výsledku byl procesor vytížený neustálým načítáním fotografií a aplikace byla nepoužitelná. Proto jsme zvolili jiný přístup. Pro každou fotografii jsou vytvořeny náhledy o velikosti šířce 512px. Tyto náhledy je již možné nahrát do RAM pro všechny vstupní fotografie. Při texturování se poté využívají náhledy a originální fotografie je načtena pouze v případě, kdy je opravdu použita. To vede ke snížení kvality textur při změně pohledu virtuální kamery, ale pokud se pohled virtuální kamery příliš nemění, textury v plném rozlišení se načtou poměrně rychle (konkrétní hodnoty jsou uvedeny v kapitole testování v sekci TODO).
+Jako řešení se nabízí možnost předem načítat omezené množství fotografií, které se vejde do RAM, aby fotografie byla vždy již načtená ve chvíli, kdy je jí třeba použít. Toto jsme implementovali za pomoci kd-stromu, kdy se načítaly fotografie nejbližší k aktuální pozici. Toto řešení se ukázalo velmi neefektivní, protože nebylo možné načítat dostatečné množství fotografií pro pokrytí všech možných směrů pohybu kamery. Ve výsledku byl procesor vytížený neustálým načítáním fotografií a aplikace byla nepoužitelná. Proto jsme zvolili jiný přístup. Pro každou fotografii jsou vytvořeny náhledy o velikosti šířce 512 px. Tyto náhledy je již možné nahrát do RAM pro všechny vstupní fotografie. Při texturování se poté využívají náhledy a originální fotografie je načtena pouze v případě, kdy je opravdu použita. To vede ke snížení kvality textur při změně pohledu virtuální kamery, ale pokud se pohled virtuální kamery příliš nemění, textury se zobrazí v plném rozlišení (konkrétní hodnoty doby načtení plných velikostí textur  jsou uvedeny v kapitole testování v sekci \ref{sec:hdd}).
 
-O načítání fotografií se stará třída \texttt{TextureHandler}. Tato třída má primárně za úkol vybírat správné fotografie pro texturování. Při výběru jsou nejprve seřazeny fotografie podle shody s aktuálním pohledem a poté jsou vybrány fotografie s největší shodou. Shoda úhlů je počítána jednoduše pomocí skalárního součinu vektorů, který pro normalizované vektory vrací cosinus úhlu mezi vektory. Pokud je zapnutý průchod pro doplňování neotexturovaných ploch, polovina ze zadaného počtu fotografií pro texturování se vybere podle aktuálního směru a druhá polovina se rozdělí mezi neotexturované plochy. Pokud je potřeba dotexturovat plochy z více směrů, počet fotografií se rozdělí váženě podle velikostí daných ploch. Poté, co je fotografie určena k použití, se inicializuje načítání originální fotografie v plné velikosti. Toto je realizováno vícevláknově za použití třídy \texttt{QThreadPool} z Qt, která si interně udržuje frontu fotografií čekajících na načtení.  Při rychlém pohybu virtuální kamery se může stát, že fotografie již není aktuální dříve, než se uvolní volné vlákno a začne se načítat. Taková situace je ošetřena booleovskou hodnotou u každé fotografie, která indikuje zda se aktuálně fotografie používá. Pokud by nebylo toto ošetřeno, mohlo by dojít k načítání fotografií, které již nejsou vůbec potřeba, na úkor aktuálních. Zároveň je také nutné hlídat, které fotografie se přestaly používat. Tyto fotografie je nutné z paměti odstranit, jinak by postupně došlo k zaplnění paměti.
+O načítání fotografií se stará třída \texttt{TextureHandler}. Tato třída má primárně za úkol vybírat správné fotografie pro texturování. Při výběru jsou fotografie seřazeny podle shody s aktuálním pohledem a  nejvhodnější fotografie jsou vybrány pro texturování. Shoda úhlů je počítána jednoduše pomocí skalárního součinu vektorů, který pro normalizované vektory vrací cosinus úhlu mezi vektory. Pokud je zapnutý průchod pro doplňování neotexturovaných ploch, polovina ze zadaného počtu fotografií pro texturování se vybere podle aktuálního směru a druhá polovina se rozdělí mezi neotexturované plochy. Pokud je potřeba dotexturovat plochy z více směrů, počet fotografií se rozdělí váženě podle velikostí daných ploch. Poté, co je fotografie určena k použití, se inicializuje načítání originální fotografie v plné velikosti. Toto je realizováno vícevláknově za použití třídy \texttt{QThreadPool} z Qt, která si interně udržuje frontu fotografií čekajících na načtení.  Při rychlém pohybu virtuální kamery se může stát, že fotografie již není aktuální dříve, než se uvolní vlákno a fotografie začne se načítat. Taková situace je ošetřena booleovskou hodnotou u každé fotografie, která indikuje zda se aktuálně fotografie používá. Pokud by nebylo toto ošetřeno, mohlo by dojít k načítání fotografií, které již nejsou vůbec potřeba, na úkor aktuálních. Zároveň je také nutné hlídat, které fotografie se přestaly používat. Tyto fotografie je nutné z paměti odstranit, jinak by postupně došlo k zaplnění paměti.
 
-Třída se zároveň spravuje texturovací objekty, které slouží k připojení textur do OpenGL. Protože v OpenGL je omezené množství texturovacích jednotek, implementace má omezené maximální množství fotografií, které mohou být současně použity pro texturování. OpenGL garantuje minimálně 16 texturovacích jednotek\footnote{Ve skutečnosti OpenGL garantuje 16 texturovacíh jednotek pro každou fázi zobrazovacího řetězce, ale protože texturování provádíme pouze na fragmentovém shaderu, zajímá nás pouze množství texturovacích jednotek dostupné v této fázi.}, ale běžně GPU podporují 32 nebo více texturovacích jednotek, což je pro potřeby aplikace dostatečné. Problém ale nastává v tom, že do paměti na GPU není možné nahrát všechny náhledy. Pokaždé, když je fotografie vybrána, je nutné nahrát do GPU náhled a později i plnou velikost. Toto se samozřejmě neděje v každém framu, \texttt{TextureHandler} si udržuje přehled o tom, které fotografie jsou v GPU nahrány. Přenosy na GPU jsou prováděny pouze pokud byla vybrána nějaká nová fotografie. V takovém případě některá z textur na GPU přestala být aktuální.  \texttt{TextureHandler} se postará o to, aby se negenerovala nová textura, ale použije se existující texturovací objekt, pouze se přepíšou obrazová data. 
+Třída zároveň spravuje texturovací objekty, které slouží k připojení textur do OpenGL. Protože v OpenGL je omezené množství texturovacích jednotek, implementace má omezené maximální množství fotografií, které mohou být současně použity pro texturování. OpenGL garantuje minimálně 16 texturovacích jednotek\footnote{Ve skutečnosti OpenGL garantuje 16 texturovacíh jednotek pro každou fázi zobrazovacího řetězce, ale protože texturování provádíme pouze na fragmentovém shaderu, zajímá nás pouze množství texturovacích jednotek dostupné v této fázi.}, ale běžně GPU podporují 32 nebo více texturovacích jednotek, což je pro potřeby aplikace dostatečné. Problém ale nastává v tom, že do paměti na GPU není možné nahrát všechny náhledy. Pokaždé, když je fotografie vybrána, je nutné nahrát do GPU náhled a později i plnou velikost. Toto se samozřejmě neděje v každém snímku, \texttt{TextureHandler} si udržuje přehled o tom, které fotografie jsou v GPU nahrány. Přenosy na GPU jsou prováděny pouze pokud byla vybrána nějaká nová fotografie. V takovém případě některá z textur na GPU přestala být aktuální.  \texttt{TextureHandler} se postará o to, aby se negenerovala nová textura, ale použije se existující texturovací objekt, pouze se přepíšou obrazová data. 
 
 \newpage
 \section{Rendering}
 
-V aplikaci je implementováno několik renderovacích průchodů. O správu texturovacích průchodů se stará třída \texttt{RenderPassHandler}. Třída umožňuje přidávat a odebírat průchody a deleguje vykreslení objektu jednotlivým průchodům ve správném pořadí. Jednotlivé průchody dědí z třídy \texttt{RenderPass}, která obsahuje společné prvky průchodů. O renderování dat se stará třída \texttt{Renderer}, která zapouzdřuje přenos dat na GPU a poskytuje jednotlivým průchodům jednotné rozhraní. O správu shaderů se stará třída \texttt{ShaderHandler}. Třída se stará o načítání, kompilaci a linkování shaderů a ukládá si jejich identifikátory, které poté poskytuje renderovacím průchodům.
+V aplikaci je implementováno několik renderovacích průchodů. O správu průchodů se stará třída \texttt{RenderPassHandler}. Třída umožňuje přidávat a odebírat průchody a deleguje vykreslení objektu jednotlivým průchodům ve správném pořadí. Jednotlivé průchody dědí z třídy \texttt{RenderPass}, která obsahuje společné prvky průchodů. O renderování dat se stará třída \texttt{Renderer}, která zapouzdřuje přenos dat na GPU a poskytuje jednotlivým průchodům jednotné rozhraní. O správu shaderů se stará třída \texttt{ShaderHandler}. Třída se stará o načítání, kompilaci a linkování shaderů a ukládá si jejich identifikátory, které poté poskytuje renderovacím průchodům.
 
 \subsection{Texturovací průchod}
 
 Základním průchodem je \texttt{TextuingRenderPass}, který se stará o texturování modelu. Tento průchod zavolá aktualizaci třídy \texttt{TextureHandler}, od které obdrží aktuální fotografie společně s jejich kalibracemi. Protože vstupní fotografie mohou mít libovolné rozměry, jsou použity textury typu \verb|GL_TEXTURE_RECTANGLE|, které nemusí být čtvercové a jejich rozměry nemusí být zarovnané na mocniny 2. Jejich další výhodou je, že na shaderech se do těchto textur nepřistupuje pomocí normalizovaných souřadnic, ale přímo pomocí souřadnic v pixelech. To je výhodné, protože po promítnutí pozice fragmentu do obrázku pomocí matice kamery získáme souřadnice také v pixelech a nemusíme je normalizovat. Nevýhodou těchto textur je absence mipmap.
 
-Kromě textur je do shaderu nutné připojit informace o kameře. To je realizováno pomocí uniformního bufferu. Tyto buffer slouží k rychlému nahrávání vetšího množství uniformních dat do shaderů. Uniformní buffer je umístěn v lokální paměti, proto je čtení dat z bufferu rychlé, což je na shaderu velmi důležité. Navíc je optimalizovaný pro sekvenční přístup, který je při iteraci kamer na shaderu vhodný. Buffer používá \texttt{std140} layout, který definuje přesné zarovnání datových typů, to umožňuje snadnou správu paměti v bufferu.
+Kromě textur je do shaderu nutné připojit informace o kameře. To je realizováno pomocí uniformního bufferu. Tento buffer slouží k rychlému nahrávání většího množství uniformních dat do shaderů. Uniformní buffer je umístěn v lokální paměti, proto je čtení dat z bufferu rychlé, což je na shaderu velmi důležité. Navíc je optimalizovaný pro sekvenční přístup, který je při iteraci kamer na shaderu vhodný. Buffer používá \texttt{std140} layout, který definuje přesné zarovnání datových typů, to umožňuje snadnou správu paměti v bufferu.
 
 
 \lstset{
@@ -543,15 +551,15 @@ float computeWeight(in int index, in vec3 N, out vec2 coords, in float dl = dirL
 
 Pokrytí celé scény pomocí vyhledávání neotexturovaných ploch je řešené jako samostatný průchod \texttt{TexturingPrePass}, který je vždy spuštěn před texturovacím průchodem. Texturovací průchod ale není závislý na prvním průchodu. To má velkou výhodu v tom, že první průchod může být volitelný, a je možné ho za běhu aplikace zapínat a vypínat. K tomu jsou dva hlavní důvody - první průchod je výpočetně poměrně náročný a výrazně zpomaluje běh aplikace, což může být problém na méně výkoném hardwaru. Dále tento průchod vyžaduje OpenGL 4.3 s rozšířením \texttt{GL\textunderscore NV\textunderscore shader\textunderscore atomic\textunderscore float}, které je v současnosti dostupné pouze na kartách od výrobce NVIDIA. Aplikaci je tedy možné používat i bez tohoto průchodu, ale v některých scénách budou výsledky vizuálně horší.
 
-Jak již bylo popsáno v sekci \ref{sec:photo-choosing}, texturovací průchod nejprve zjistí, které plochy není možné otexturovat. To zjistí výpočtem váhy, která probíhá stejně jako v texturovacím průchodu. Pokud je váha 0, fragment nelze otexturovat. V tom případě se do textury vykreslí aktuální normála. Vykreslování do textury je v OpenGL standardní operace a jde realizovat jednoduše. Poté je potřeba texturu přečíst a zjistit, které směry jsou v textuře uloženy. To ale není úplně jednoduché, protože textura je uložena v paměti na GPU. Kopírovat texturu v každém framu do RAM je velmi náročné a real-time aplikaci nepoužitelné. Proto jsem se rozhodl provést klastrování normál na GPU pomocí výpočetních shaderů.
+Jak již bylo popsáno v sekci \ref{sec:photo-choosing}, texturovací průchod nejprve zjistí, které plochy není možné otexturovat. To zjistí výpočtem váhy, která probíhá stejně jako v texturovacím průchodu. Pokud je váha 0, fragment nelze otexturovat. V tom případě se do textury vykreslí aktuální normála. Vykreslování do textury je v OpenGL standardní operace a jde realizovat jednoduše. Poté je potřeba texturu přečíst a zjistit, které směry jsou v textuře uloženy. To ale není úplně jednoduché, protože textura je uložena v paměti na GPU. Kopírovat texturu v každém snímku do RAM je velmi náročné a v real-time aplikaci nepoužitelné. Proto jsem se rozhodl provést klastrování normál na GPU pomocí výpočetních shaderů.
 
-Výpočetní shadery jsou poměrně nová technologie, dostupná od OpenGL 4.3. Tyto shadery narozdíl od ostatních nepatří do zobrazovacího řetězce a nepodílí se přímo na renderingu. Naopak tyto shadery umožňují provádět na GPU obecné výpočty, které s grafikou vůbec nemusí souviset. Architektura GPU je masivně paralelní, proto je na GPU vhodné provádět pouze výpočty, které jdou ve velkém měřítku paralelizovat. Výpočetní shadery jsou podobné technologiím CUDA nebo OpenCL, které také slouží k provádění obecných výpočtů na GPU. Výhoda výpočetních shaderů spočívá v tom, že je velmi snadné je zapojit do aplikace, které již OpenGL používá, protože mapování bufferů či textur probíhá úplně stejně, jako u běžných shaderů. Zároveň výpočetní shadery také používají jazyk GLSL, který poskytuje řadu užitečných funkcí. 
+Výpočetní shadery jsou poměrně nová technologie, dostupná od OpenGL 4.3. Tyto shadery, na rozdíl od ostatních, nepatří do zobrazovacího řetězce a nepodílí se přímo na vykreslování. Naopak tyto shadery umožňují provádět na GPU obecné výpočty, které s grafikou vůbec nemusí souviset. Výpočetní shadery jsou podobné technologiím CUDA nebo OpenCL, které také slouží k provádění obecných výpočtů na GPU. Výhoda výpočetních shaderů spočívá v tom, že je velmi snadné je zapojit do existující OpenGL aplikace, protože mapování bufferů či textur probíhá úplně stejně, jako u běžných shaderů. Zároveň výpočetní shadery také používají jazyk GLSL, který poskytuje řadu užitečných funkcí.  Architektura GPU je masivně paralelní, proto je na GPU vhodné provádět pouze výpočty, které jdou ve velkém měřítku paralelizovat.  
 
-Pro klastrování normál je použit algoritmus k-means \cite{Lloyd82}. Tento algoritmus na začátku rozdělí data náhodně do $k$ skupin. Poté spočítá centroid každého klastru a porovná prvky se všemi centroidy. Pokud je prvek blíže k některému centroidu z jiného klastru, je do tohoto klastru přesunut. Takto algoritmus iterativně pokračuje, dokud existuje prvek, který se v dané iteraci přesunuje do jiného clusteru. Případně je možné algoritmus ukončit po daném počtu iterací. Algoritmus je primárně určen pro klastrování bodů v prostoru, ale je možné ho použít i pro klastrování vektorů, kdy vzdálenost směrů určuje úhel mezi vektory. Pro algoritmus je předem nutné zadat počet klastrů, ale některé klastry mohou zůstat na konci algoritmu prázdné. Během testování se ukázalo, že dostatečný počet klastrů pro normály je 4. V běžných scénách není pravděpodobné, že by nebyly otexturovány plochy z více jak čtyř význačných směrů.
+Pro klastrování normál je použit algoritmus k-means \cite{Lloyd82}. Tento algoritmus na začátku rozdělí data náhodně do $k$ skupin. Poté spočítá centroid každého klastru a porovná prvky se všemi centroidy. Pokud je prvek blíže k některému centroidu z jiného klastru, je do tohoto klastru přesunut. Takto algoritmus iterativně pokračuje, dokud existuje prvek, který se v dané iteraci přesunuje do jiného klastru. Případně je možné algoritmus ukončit po daném počtu iterací. Algoritmus je primárně určen pro klastrování bodů v prostoru, ale je možné ho použít i pro klastrování vektorů, kdy vzdálenost směrů určuje úhel mezi vektory. Pro algoritmus je předem nutné zadat počet klastrů, ale některé klastry mohou zůstat na konci algoritmu prázdné. Během testování se ukázalo, že dostatečný počet klastrů pro normály je 4. V běžných scénách není pravděpodobné, že by nebyly otexturovány plochy z více jak čtyř význačných směrů.
 
 Algoritmus je vhodný pro paralelní implementaci na GPU. Pro každý pixel vstupní normálové textury se spustí jedno vlákno, které porovná úhel se všemi klastry a určí, zda se normála přesune do jiného klastru. Poté je nutné v rámci všech klastrů spočítat jejich centroid, tedy sečíst všechny normály v klastru a výsledek vydělit počtem normál. Tento krok jde také paralelizovat pomocí jednoho ze základních paralelních algoritmů - redukce.
 
-Paralelní redukce je algoritmus, který umožňuje paralelně sečíst sekvenci čísel. Funguje tak, že v každé iteraci jedno vlákno sečte dvě unikátní a čísla a uloží částečný výsledek. Tím vznikne z $n$ prvků původní množiny $\frac{n}{2}$ částečných výsledků. Takto se rekurzivně pokračuje, dokud algoritmus nenajde výsledek. Běh algoritmu je znázorněna na obrázku \ref{fig:reduction}.
+Paralelní redukce je algoritmus, který umožňuje paralelně sečíst sekvenci čísel. Funguje tak, že v každé iteraci jedno vlákno sečte dvě unikátní a čísla a uloží částečný výsledek. Tím vznikne z $n$ prvků původní množiny $\frac{n}{2}$ částečných výsledků. Takto se rekurzivně pokračuje, dokud algoritmus nenajde výsledek. Běh algoritmu je znázorněn na obrázku \ref{fig:reduction}.
 
 \begin{figure}[h]
 \begin{center}
@@ -565,7 +573,7 @@ Při spuštění výpočetního shaderu musíme explicitně zadat, kolik vláken
 
 Pro zpracování normálové mapy je použita lokální velikost skupiny $(16, 16, 1)$ a počet pracovních skupin se dopočítává podle aktuálního rozlišení obrazovky. Textura je tedy zpracovávána po blocích $16\times16$ pixelů. Toho můžeme využít při inicializaci klastrů. Namísto toho, abychom v první iteraci normály náhodně rozdělili mezi klastry, můžeme vždy normály v jednom bloku vložit do jednoho zvoleného klastru. Protože se dá očekávat, že normály v jednom bloku budou velmi pravděpodobně patřit do jedné plochy, můžeme tímto klastrování urychlit. Po počátečním rozdělení je nutné spočítat centroidy klastrů, to provedeme pomocí výše popsané paralelní redukce. 
 
-Paralelní redukce je provedena v rámci každé pracovní skupiny ve sdílené paměti. Sdílená paměť je velmi rychlá, proto je pro tento typ operace vhodná. Protože máme 4 clustery, nejde provést redukce jednoduše v rámci jednoho pole, protože v částečných součtech během redukce by nešlo určit, která data patří do jakého klastru. Proto je nutné vytvořit pro každý klastr jedno pole s počtem prvků stejným jako je lokální velikost skupiny. V ukázce \ref{code:comp-data} jsou deklarace polí, které se během redukce využívají. Deklarace označené klíčovým slovem \texttt{buffer} jsou v hlavní paměti GPU a jsou přístupné ze všech vláken. Pole označená jako \texttt{shared} jsou ve sdílené paměti, do které mají přístup pouze vlákna v rámci jedné pracovní skupiny.
+Paralelní redukce je provedena v rámci každé pracovní skupiny ve sdílené paměti. Sdílená paměť je velmi rychlá, proto je pro tento typ operace vhodná. Protože máme 4 klastry, nejde provést redukce jednoduše v rámci jednoho pole, protože v částečných součtech během redukce by nešlo určit, která data patří do jakého klastru. Proto je nutné vytvořit pro každý klastr jedno pole s počtem prvků stejným jako je lokální velikost skupiny. V ukázce \ref{code:comp-data} jsou deklarace polí, které se během redukce využívají. Deklarace označené klíčovým slovem \texttt{buffer} jsou v hlavní paměti GPU a jsou přístupné ze všech vláken. Pole označená jako \texttt{shared} jsou ve sdílené paměti, do které mají přístup pouze vlákna v rámci jedné pracovní skupiny.
 
 
 \lstset{
@@ -589,7 +597,7 @@ shared uint sizeCache[CLUSTERS][SIZE];
 \end{lstlisting}
 
 
-V ukázce \ref{code:comp-reduction} je zobrazen kompletní algoritmus paralelní redukce. Na řádcích \texttt{1-7} je provedena inicializace dat ve sdílené paměti. Všechna data jsou inicializována na 0, poté jsou inicializována data jednotlivých klastrů. Proměná \texttt{centroidIDX} je index klastru, do kterého přísluší aktuální vlákno. Tato proměnná je v prvním průchodu inicializovaná na základě pozice pracovní skupiny, v dalších iteracích je hodnota načtena z pole \texttt{indices}. Následuje cyklus, který provádí samotnou redukci odděleně pro každý klastr. Po každém cyklu je nutné provést paměťovou synchronizaci vláken pomocí funkce  \texttt{memoryBarrierShared}, která zajistí viditelnost zapsaných výsledků pro všechny vlákna. Zároveň je nutné provést synchronizaci pomocí \texttt{barrier}, která zajistí, že žádné vlákno v rámci skupiny nebude pokračovat, dokud všechny vlákna nedosáhly bariéry. Podmínku na řádce \texttt{21} vždy splní pouze jedno vlákno v pracovní skupině. Toto vlákno přidá pomocí atomické operace výsledek z redukce v dané skupině do bufferu v hlavní paměti. Tím získáme finální výsledek redukce. Atomické operace jsou velmi náročné a je vhodné se jim vyhýbat. V tomto případě je ale atomická operace nad proměnnou provedena pouze jednou pro každou pracovní skupinu, takže nezpůsobí výraznou ztrátu výkonu.
+V ukázce \ref{code:comp-reduction} je zobrazen kompletní algoritmus paralelní redukce. Na řádcích \texttt{1-7} je provedena inicializace dat ve sdílené paměti. Všechna data jsou inicializována na 0, poté jsou inicializována data jednotlivých klastrů. Proměnná \texttt{centroidIDX} je index klastru, do kterého přísluší aktuální vlákno. Tato proměnná je v prvním průchodu inicializovaná na základě pozice pracovní skupiny, v dalších iteracích je hodnota načtena z pole \texttt{indices}. Následuje cyklus, který provádí samotnou redukci odděleně pro každý klastr. Po každém cyklu je nutné provést paměťovou synchronizaci vláken pomocí funkce  \texttt{memoryBarrierShared}, která zajistí viditelnost zapsaných výsledků pro všechny vlákna. Zároveň je nutné provést synchronizaci pomocí \texttt{barrier}, která zajistí, že žádné vlákno v rámci skupiny nebude pokračovat, dokud všechna vlákna nedosáhla bariéry. Podmínku na řádce \texttt{21} vždy splní pouze jedno vlákno v pracovní skupině. Toto vlákno přidá pomocí atomické operace výsledek z redukce v dané skupině do bufferu v hlavní paměti. Tím získáme finální výsledek redukce. Atomické operace jsou velmi náročné a je vhodné se jim vyhýbat. V tomto případě je ale atomická operace nad proměnnou provedena pouze jednou pro každou pracovní skupinu.
 
 \lstset{
 	emph={[1]barrier,memoryBarrierShared,atomicAdd},
@@ -626,7 +634,7 @@ if (localID == 0) { //secteni vysledku ze vsech skupin
 \end{lstlisting}
 
 
-Protože na výpočetních shaderech není možné synchronizovat všechna vlákna napříč pracovními skupinami, není možné po provedení redukce vydělit získaný centroid počtem vláken a pokračovat v klastrování. Jediný způsob, jak zajistit globální synchronizaci, je spustit nový shader. Proto jsou data z paralelní redukce zkopírována na CPU, kde proběhne výpočet a normalizace centroidu a poté je spuštěn nový shader, na kterém je provedeno klastrování. Přenos klastrů z GPU na CPU není problém, protože každý klastr obsahuje pouze jeden vektor a počet normál v klastru. Po výpočtu centroidu je spuštěn další shader, který provádí samotné klastrování. Shader má připojené stejné buffery, jako ten, který provádí redukci. Tento shader je již poměrně jednoduchý, pouze pro iteruje přes všechny klastry, porovnává úhel mezi aktuální normálou a centroidem klastru a nastavuje index nejvhodnějšího klastru, viz ukázka \ref{code:comp-cluster}. Poté se opět provede redukce a pokračuje se další iterací.
+Protože na výpočetních shaderech není možné synchronizovat všechna vlákna napříč pracovními skupinami, není možné po provedení redukce vydělit získaný centroid počtem vláken a pokračovat v klastrování. Jediný způsob, jak zajistit globální synchronizaci, je spustit nový shader. Proto jsou data z paralelní redukce zkopírována na CPU, kde proběhne výpočet a normalizace centroidu a poté je spuštěn nový shader, na kterém je provedeno klastrování. Přenos klastrů z GPU na CPU není problém, protože každý klastr obsahuje pouze jeden vektor a počet normál v klastru. Po výpočtu centroidu je spuštěn další shader, který provádí samotné klastrování. Shader má připojené stejné buffery, jako ten, který provádí redukci. Tento shader je již poměrně jednoduchý, pouze  iteruje přes všechny klastry, porovnává úhel mezi aktuální normálou a centroidem klastru a nastavuje index nejvhodnějšího klastru, viz ukázka \ref{code:comp-cluster}. Poté se opět provede redukce a pokračuje se další iterací.
 
 \lstset{
 	emph={[1]memoryBarrier,dot},
@@ -669,7 +677,7 @@ Veškeré testování probíhalo v následující konfiguraci:
 \item Rozlišení použité pro rendering: $1366\times678$px
 \end{itemize}
 
-Pro testování byly použity tři odlišné scény. První model je rekonstruovaný blok z Langweilova modelu Prahy\cite{langweil}, zapůjčený od Muzea hlavního města Prahy.  Druhý model je rekonstrukce sochy a poslední model je rekonstrukce jedné stěny sarkofágu. Rendery modelů jsou zobrazeny v sekci  \ref{sec:renders}.
+Pro testování byly použity tři odlišné scény, viz tabulka \ref{tab:scenes}. První model je rekonstruovaný blok z Langweilova modelu Prahy \cite{langweil}, zapůjčený od Muzea hlavního města Prahy.  Druhý model je rekonstrukce sochy a posledním modelem je částečná rekonstrukce sarkofágu. Rendery modelů jsou zobrazeny v sekci  \ref{sec:renders}.
 
 \begin{table}[h]
 \begin{center}
@@ -682,7 +690,7 @@ Pro testování byly použity tři odlišné scény. První model je rekonstruov
 \textbf{Model 3} & 769333 & 2307999 & 9 & $3504\times2336$ \\ \hline
 \end{tabularx}
 \caption{Tabulka zobrazuje základní informace o testovacích scénách.}
-\label{tab:test-1}
+\label{tab:scenes}
 
 \end{center}
 \end{table}
@@ -692,7 +700,7 @@ Pro testování byly použity tři odlišné scény. První model je rekonstruov
 
 \subsection{Testování doby vykreslování}
 
-Testování probíhalo pomocí měření doby vykreslení scény, kdy se kamera pohybovala kolem středu objektu po kružnici a vždy se dívala na střed objektu. Měření času je prováděno na GPU pomocí OpenGL časovačů. Ty používají asynchroní dotazy, které přesně změří dobu renderování, protože čas je zaznamenán až po dokončení všech předchozích vykonávaných OpenGL funkcí. Zároveň za pomoci techniky dvou bufferů se vždy odečítá čas o jeden snímek později. To umožňuje odečítat čas bez nutnosti čekat na dokončení vykreslování, takže měření času se nijak neprojeví na výsledném výkonu.
+Testování probíhalo pomocí měření doby vykreslení scény, kdy se kamera pohybovala kolem středu objektu po kružnici vždy s pohledem na střed objektu. Měření času je prováděno na GPU pomocí OpenGL časovačů. Ty používají asynchronní dotazy, které přesně změří dobu vykreslování, protože čas je zaznamenán až po dokončení všech předchozích vykonávaných OpenGL funkcí. Zároveň za pomoci techniky dvou bufferů se vždy odečítá čas o jeden snímek později. To umožňuje odečítat čas bez nutnosti čekání na dokončení vykreslování, takže měření času se nijak neprojeví na výsledném výkonu.
 
 \lstset{
   morekeywords={GLuint64,GLuint},
@@ -731,7 +739,7 @@ public:
 }
 \end{lstlisting}
 
-V ukázce \ref{code:time} je zobrazena implementace měření času. V metodě \texttt{start} se spustí časovač na zadním bufferu a v metodě \texttt{end} se tento časovač ukončí. V tuto chvíli není možné časovač odečíst, protože nemusely být dokončeny všechny asynchroní příkazy na GPU. Proto je odečten časovač na předním bufferu, který byl spuštěn a ukončen v minulém snímku a nyní již musí být dostupný. Poté se buffery přehodí. Časovač měří čas s udávanou přesností $10^{-9}s$, to je řádově více, než je pro běžné měření potřeba.
+V ukázce \ref{code:time} je zobrazena implementace měření času. V metodě \texttt{start} se spustí časovač na zadním bufferu a v metodě \texttt{end} se tento časovač ukončí. V tuto chvíli není možné časovač odečíst, protože nemusely být dokončeny všechny asynchronní příkazy na GPU. Proto je odečten časovač na předním bufferu, který byl spuštěn a ukončen v minulém snímku a nyní již musí být dostupný. Poté se buffery přehodí. Časovač měří čas s udávanou přesností $10^{-9}s$, to je řádově více, než je pro běžné měření potřeba.
 
 \subsubsection*{Model 1}
 První testování je provedeno pro jeden oběh virtuální kamery kolem modelu, to odpovídá 2094 měřeným snímkům. Při tomto měření nebyl zapnutý průchod pro doplňování neotexturovaných ploch.
@@ -745,7 +753,7 @@ První testování je provedeno pro jeden oběh virtuální kamery kolem modelu,
 \end{figure}
 
 
-V grafu \ref{fig:data-1} jsou znázorněna měření při použití různého množství fotografií (1, 5, 15 a 30). V měření jsou očividné výrazné výchylky v některých snímcích. Tyto výchylky jsou způsobené nahráváním plné velikosti textury z CPU na GPU. Ve chvíli, kdy je fotografie načtena z  HDD, proběhne její nahrání z RAM do GPU a to způsobí výrazné zpomalení v daném snímku v závislosti na velikosti nahrávané textury. Pokud se sejde více fotografií v jednom snímku, je toto prodlení znásobené. Tento problém se mi bohužel nepodařilo odstranit. Při běžném prohlížení modelu je toto znatelné, ale není to tak výrazný problém. Při rychlejším pohybu kamery se snímky z HDD nestíhají načítat a obvykle se načtou až při zastavení kamery. V tu chvíli uživatel krátkodobý pokles fps nezaznamená. V tabulce \ref{fig:data-1} jsou zobrazena data z grafu \ref{fig:data-1}. 
+V grafu \ref{fig:data-1} jsou znázorněna měření při použití různého množství fotografií (1, 5, 15 a 30). V měření jsou očividné výrazné výchylky v některých snímcích. Tyto výchylky jsou způsobené nahráváním plné velikosti textury z CPU na GPU. Ve chvíli, kdy je fotografie načtena z  HDD, proběhne její nahrání z RAM do GPU a to způsobí výrazné zpomalení v daném snímku v závislosti na velikosti nahrávané textury. Pokud se sejde více fotografií v jednom snímku, je toto prodlení znásobené. Tento problém se mi bohužel nepodařilo odstranit. Při běžném prohlížení modelu je toto znatelné, ale není to tak výrazný problém. Při rychlejším pohybu kamery se snímky z HDD nestíhají načítat a obvykle se načtou až při zastavení kamery. V tu chvíli uživatel krátkodobý pokles fps nezaznamená. V tabulce \ref{fig:data-2} jsou zobrazena vybraná data z grafu \ref{fig:data-1}. 
 
 \begin{table}[h]
 \begin{center}
@@ -758,19 +766,19 @@ V grafu \ref{fig:data-1} jsou znázorněna měření při použití různého mn
 \textbf{Průměr [ms]} & 5,36 & 5,81 & 6,62 & 8,16 \\ \hline
 \textbf{Průměr [fps]} & 186,48 & 172,17 & 151,00 & 122,48 \\ \hline
 \end{tabularx}
-\caption{Tabulka zobrazuje hraniční a průměrné hodnoty z grafu \ref{fig:data-1}.}
-\label{tab:test-1}
+\caption{Tabulka zobrazuje vybrané hodnoty z měření rychlosti vykreslování modelu 1.}
+\label{tab:data-2}
 
 \end{center}
 \end{table}
 \noindent Data ukazují, že počet použitých fotografií zpomaluje renderování, ale není to během vykreslování zásadní faktor. Při použití 30ti fotografií je vykreslování pomalejší o $30\%$ než při použití 5ti fotografií. 
 
-Pro potvrzení předchozího tvrzení, že výrazné výchylky způsobuje načítání fotografií s velkým rozlišením do GPU, jsem provedl měření, při kterém byl přenos originálních velikostí do GPU vypnutý. V tomto měření se žádné výkyvy neprojevily, žádný snímek nepřekročil 11ms. Výsledky měření jsou zobrazeny v grafu \ref{fig:data-2}
+Pro potvrzení předchozího tvrzení, že výrazné výchylky způsobuje načítání fotografií s velkým rozlišením do GPU, jsem provedl měření, při kterém byl přenos originálních velikostí do GPU vypnutý. V tomto měření se žádné výkyvy neprojevily, žádný snímek nepřekročil 11ms. Výsledky měření jsou zobrazeny v grafu \ref{fig:data-2}.
 
 \begin{figure}[ht]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/data-2}
-\caption{Graf zobrazující čas renderování snímku při použití různého množství vstupních fotografií pouze za použití náhledů.}
+\caption{Graf zobrazující čas vykreslování snímků při použití různého množství vstupních fotografií pouze za použití náhledů.}
 \label{fig:data-2}
 \end{center}
 \end{figure}
@@ -780,12 +788,12 @@ V následujícím testu je porovnán běh aplikace při použití deseti vstupn�
 \begin{figure}[hb]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/data-3}
-\caption{Graf zobrazující čas renderování snímku při použití různého množství vstupních fotografií bpouze za použití náhledů.}
+\caption{Graf zobrazující čas vykreslování snímků při využití průchodu pro doplňování neotexturovaných ploch.}
 \label{fig:data-3}
 \end{center}
 \end{figure}
 
-V grafu je vidět, že při zapnutí obou průchodů je vykreslování výrazně pomalejší, průměrný čas pro vyrenderování snímku je 65,41ms, to odpovídá 15,3 fps. V tomto případě již nemůžeme mluvit o real-time renderingu.  Oproti tomu samotný texturovací průchod má průměrnou dobu vykreslení snímku 5,60ms (176 fps). Dále je při obou zapnutých  průchodech vidět výrazný nárůst vrcholů způsobených načítáním textur do GPU. To je dané tím, že při pomalejším vykreslování snímků se stíhají nahrát plné velikosti všech fotografií, takže je jejich přenos do GPU mnohem častější.
+V grafu je vidět, že při zapnutí obou průchodů je vykreslování výrazně pomalejší, průměrný čas pro vyrenderování snímku je 65,41 ms, to odpovídá 15,3 fps. V tomto případě již nemůžeme mluvit o real-time renderingu. Toto zpomalení je způsobeno zejména použitím atomických operací při paralelní redukci. Těm by se bylo možné vyhnout použitím další paralelní redukce pro součet výsledků ze všech pracovních skupin. Ta je implementačně složitější a bohužel jsem jí nestihl implementovat. Implementace toho průchodu se primárně soustředila na otestování, zda je myšlenka správná a průchod vylepšuje výsledné otexturování. Celkově je v tomto průchodu velký prostor pro případnou optimalizaci, pokud by bylo na této práci navázáno.  Oproti tomu samotný texturovací průchod má průměrnou dobu vykreslení snímku 5,60ms (176 fps). Dále je při obou zapnutých  průchodech vidět výrazný nárůst vrcholů způsobených načítáním textur do GPU. To je dané tím, že při pomalejším vykreslování snímků se stíhají nahrát plné velikosti všech fotografií, takže je jejich přenos do GPU mnohem častější.
 
 \subsubsection*{Model 2}
 
@@ -801,7 +809,9 @@ První testování proběhlo stejně jako v předchozím případě, bez zapnut�
 
 V grafu je zobrazeno podobné chování, jako u předchozího modelu. Při načítání fotografií je znatelné zpomalení vykreslování, ale protože tento model má nižší rozlišení fotografií, maximální časy nejsou tak výrazné. Celkově je vykreslování pomalejší než u předchozí scény, ale to je způsobeno zejména výrazně složitějším modelem, který má přes 700 tisíc trojúhelníků. Data jsou opět shrnuta v tabulce \ref{tab:test-4}.
 
-\begin{table}[ht]
+ \enlargethispage{5\baselineskip} %todo be careful!
+
+\begin{table}[h]
 \begin{center}
 \newcolumntype{R}{>{\raggedleft\arraybackslash}X}%
 \begin{tabularx}{\textwidth}{ |l|R|R|R|R| }
@@ -832,6 +842,7 @@ Tento model má k dipozici pouze 9 fotografií, proto bylo měření provedeno p
 Protože byly celou dobu použity všechny fotografie, na grafu nejsou žádné výkyvy způsobené přenosem textur na GPU. Průměrná doba vykreslení snímku byla 20,43ms, to odpovídá 49 fps. Nárůst výkonu na krajích měření je způsoben geometrií objektu, kdy z bočního pohledu je geometrie viditelná jen velmi málo.
 
 \subsection{Rychlost načítání fotografií z HDD}
+\label{sec:hdd}
 
 Fotografie v plné velikosti jsou z HDD načítány v nových vláknech. Testoval jsem, jestli je výhodnější načítat fotografie paralelně ve více vláknech nebo jestli je lepší využít pouze jedno vlákno. Měření bylo provedeno na modelu 1 rychlým otočením scény o $180^{\circ}$, kdy byly vyměněny všechny textury. Byl měřen čas od zastavení kamery do načtení poslední fotografie.
 
@@ -849,12 +860,12 @@ Fotografie v plné velikosti jsou z HDD načítány v nových vláknech. Testova
 \end{center}
 \end{table}
 
-Výsledky ukazují, že je výhodnější načítat fotografie v jediném vláknu. To je způsobené tím, že přístup na HDD není možné paralelizovat a vlákna se musejí střídat. To způsobí, že přístupy na HDD jsou náhodné, oproti tomu při použití jediného vlákna jsou přístupy více sekvenční, tedy i rychlejší. Proto je ve výsledné aplikaci použito pouze jedno vlákno pro načítání fotografií. Naměřené hodnoty jsou poměrně vysoké, při 15 fotografiích o rozlišení 16MPx je nutné čekat 8 s na kompletní načtení fotografií. Nicméně testování proběhlo na úsporném HDD v notebooku, na stolních počítačích se dají očekávat lepší výsledky.
+Výsledky ukazují, že je výhodnější načítat fotografie v jediném vláknu. To je způsobené tím, že přístup na HDD není možné paralelizovat a vlákna se musejí střídat. To způsobí, že přístupy na HDD jsou náhodné, oproti tomu při použití jediného vlákna jsou přístupy více sekvenční, tedy i rychlejší. Proto je ve výsledné aplikaci použito pouze jedno vlákno pro načítání fotografií. Naměřené hodnoty jsou poměrně vysoké, při 15 fotografiích o rozlišení 16 MPx je nutné čekat 8 s na kompletní načtení fotografií. Nicméně testování proběhlo na úsporném HDD v notebooku, na stolních počítačích se dají očekávat lepší výsledky.
 
 
 \subsection{Paměťová náročnost aplikace}
 
-Na grafu \ref{fig:massif} je zobrazena paměťová náročnost aplikace při zobrazování modelu 1. K měření byl použit program Valgrind massif. Graf zobrazuje průběh alokované RAM v čase. První nárůst paměti odpovídá načtení náhledů při otevření scény, kterých bylo přibližně 320MB. Poté následuje načtení 5 fotografií v plné velikosti, to odpovídá nárůstu 240MB. V tu chvíli je velikost alokované RAM 814MB. Za tento rozdíl je odpovědné OpenGL, které si z implementačních důvodů alokuje v RAM stejné množství paměti, jako je alokováno na GPU. Paměť alokovaná pomocí OpenGL je hrubě naznačena zelenou oblastí. Nejvýraznější nárůst paměti je způsobený zvýšením počtu používaných fotografií z 5ti na 15. Poté byla provedena rotace scény o $360^{\circ}$, to odpovídá velkým výkyvům uprostřed grafu, kdy byly vždy smazány nepoužívané fotografie a načteny nové. Poté proběhlo opět snížení počtu fotografií na 5, proto je uvolněna velká část paměti v RAM i na GPU. Nakonec je provedena další rotace scény, kdy jsou opět průběžně mazány a nahrávány nové fotografie.
+Na grafu \ref{fig:massif} je zobrazena paměťová náročnost aplikace při zobrazování modelu 1. K měření byl použit program Valgrind massif. Graf zobrazuje průběh alokované RAM v čase. První nárůst paměti odpovídá načtení náhledů při otevření scény, kterých bylo přibližně 320 MB. Poté následuje načtení 5 fotografií v plné velikosti, to odpovídá nárůstu 240 MB. V tu chvíli je velikost alokované RAM 814 MB. Za tento rozdíl je odpovědné OpenGL, které si z implementačních důvodů alokuje v RAM stejné množství paměti, jako je alokováno na GPU. Paměť alokovaná pomocí OpenGL je hrubě naznačena zelenou oblastí. Nejvýraznější nárůst paměti je způsobený zvýšením počtu používaných fotografií z 5ti na 15. Poté byla provedena rotace scény o $360^{\circ}$, to odpovídá velkým výkyvům uprostřed grafu, kdy byly vždy smazány nepoužívané fotografie a načteny nové. Poté proběhlo opět snížení počtu fotografií na 5, proto je uvolněna velká část paměti v RAM i na GPU. Nakonec je provedena další rotace scény, kdy jsou opět průběžně mazány a nahrávány nové fotografie.
 
 \begin{figure}[h]
 \begin{center}
@@ -864,7 +875,7 @@ Na grafu \ref{fig:massif} je zobrazena paměťová náročnost aplikace při zob
 \end{center}
 \end{figure}
 
-Z grafu je patrné, že spotřebovaná paměť aplikace je přímo závislá na počtu aktuálně používaných fotografií. Ostatní alokovaná paměť aplikaci je v porovnání s pamětí alokovanou pro fotografie zanedbatelná.
+Z grafu je patrné, že spotřebovaná paměť aplikace je přímo závislá na počtu aktuálně používaných fotografií. Ostatní alokovaná paměť aplikací je v porovnání s pamětí alokovanou pro fotografie zanedbatelná.
 
 \section{Testování kvality renderů}
 \label{sec:renders}
@@ -895,7 +906,7 @@ Na obrázku \ref{fig:test-2} je zobrazen model s různým počtem použitých fo
 \end{center}
 \end{figure}
 
-Na  obrázku \ref{fig:test-3} je zobrazeno použití průchodu pro doplňování neotexturovaných ploch při použití 8mi a 12ti fotografií. Podobného výsledku jde často dosáhnout i zvýšením počtu použitých fotografií.
+Na  obrázku \ref{fig:test-3} je zobrazeno použití průchodu pro doplňování neotexturovaných ploch při použití 8mi a 12ti fotografií. Podobného výsledku jde často dosáhnout i zvýšením počtu použitých fotografií, obecně je to ale závislé na rozložení pozic a směrů kamer.
 
 \begin{figure}[h!]
 \begin{center}
@@ -920,15 +931,16 @@ Druhý model má oproti předchozímu výrazně jednodušší geometrii a každ�
 
 \subsubsection*{Model 3}
 
-Třetí model je podobný druhému, jedna fotografie pokrývá většinu modelu a fotografií je velmi malý počet. Na obrázku \ref{fig:test-5} je zobrazen detail při použití jedné a všech fotografií.
+Třetí model je typově podobný druhému, jedna fotografie pokrývá většinu modelu a fotografií je velmi malý počet. Na obrázku \ref{fig:test-5} je zobrazen detail při použití jedné a všech fotografií.
 
 \begin{figure}[h!]
 \begin{center}
 \includegraphics[width=\textwidth]{figures/test-5}
-\caption{Detail modelu otexturovaný jednou fotografií (vlevo nahoře) a všemi devíti fotografiemi (vpravo nahoře). Dole je zobrazena neotexturovaná geometrie (vlevo) a rozdíl mezi horními dvěma obrázky (vpravo).}
+\caption{Detail modelu otexturovaný jednou fotografií (vlevo nahoře) a všemi devíti fotografiemi (vpravo nahoře). Dole je zobrazena neotexturovaná geometrie (vlevo) a rozdíl\protect\footnotemark mezi horními dvěma obrázky (vpravo).}
 \label{fig:test-5}
 \end{center}
 \end{figure}
+\footnotetext{Rozdíl obrázků je počítán jako absolutní rozdíl barev. Rozdíl dvou stejných pixelů je černá barva, rozdíl dvou odlišných pixelů má vždy přiřazenou absolutní hodnotu rozdílu jednotlivých barevných složek.}
 
 \subsection{Porovnání s původními fotografiemi}
 
@@ -967,9 +979,54 @@ V dalším testu jsem porovnával rendery modelů s originálními fotografiemi.
 
 \subsection{Porovnání s referenčními modely}
 
+\subsubsection*{Model 1}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/test-9}
+\caption{TODO.}
+\label{fig:test-9}
+\end{center}
+\end{figure}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/test-10}
+\caption{TODO.}
+\label{fig:test-10}
+\end{center}
+\end{figure}
+
 
 \subsection{Chyby při texturování}
-švy, zastínění, málo fotek u rohů -> zvětšit počet fotek
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/err-1}
+\caption{TODO.}
+\label{fig:err-1}
+\end{center}
+\end{figure}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/err-2}
+\caption{TODO.}
+\label{fig:err-2}
+\end{center}
+\end{figure}
+\begin{figure}[h]
+\begin{center}
+
+\includegraphics[width=\textwidth]{figures/err-3}
+\caption{TODO.}
+\label{fig:err-3}
+\end{center}
+\end{figure}
+
+odlesky, málo fotek
+
+\section{Zhodnocení výsledků testování}
 
 \chapter{Závěr}
 \label{chap:end}
