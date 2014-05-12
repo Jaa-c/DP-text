@@ -697,7 +697,7 @@ Pro testování byly použity tři odlišné scény, viz tabulka \ref{tab:scenes
 
 \newpage %tmp
 \section{Testování výkonu}
-
+\label{sec:fps}
 \subsection{Testování doby vykreslování}
 
 Testování probíhalo pomocí měření doby vykreslení scény, kdy se kamera pohybovala kolem středu objektu po kružnici vždy s pohledem na střed objektu. Měření času je prováděno na GPU pomocí OpenGL časovačů. Ty používají asynchronní dotazy, které přesně změří dobu vykreslování, protože čas je zaznamenán až po dokončení všech předchozích vykonávaných OpenGL funkcí. Zároveň za pomoci techniky dvou bufferů se vždy odečítá čas o jeden snímek později. To umožňuje odečítat čas bez nutnosti čekání na dokončení vykreslování, takže měření času se nijak neprojeví na výsledném výkonu.
@@ -1006,7 +1006,8 @@ Na obrázku \ref{fig:test-10} je zobrazen stejný test z jiného pohledu.
 \end{figure}
 
 
-\section{Zhodnocení výsledků testování}
+\section{Zhodnocení výsledků testování a náměty na vylepšení}
+\label{sec:results}
 
 Testování ukázalo, že aplikace je schopná dobře otexturovat testovací scény, ale odhalila i řadu nedostatků. Co se týče výkonu, největší problémy způsobuje kopírování velkých textur na GPU. OpenGL aktuálně nenabízí žádnou možnost, jak tento problém řešit. Existuje možnost využít DMA pomocí pixel buffer objektů, které umožňují asynchronní kopírování textur na GPU. Tato funkce je bohužel pouze optimalizací a je závislá na implementaci. Tato metoda navíc neumožňuje zjistit, zda byl asynchronní přenos textury na GPU dokončen, což přináší další velkou komplikaci pro použití v real-time aplikaci. Existují také metody mega textur \cite{mega} založené na metodě virtuálního texturování. Implementace této technologie je zatím pravděpodobně pouze uzavřená. Jako rozumné řešení se nabízí nahrávat textury do GPU po částech, které by se za jeden snímek nahrály bez výrazného zpomalení. Znamenalo by to ale složitější implementaci, protože by bylo nutné určit, jak velké části textury je možné zkopírovat během jednoho snímku. Zároveň by tyto části musely být co největší, aby nebyl přenos příliš dlouhý.
 
@@ -1048,10 +1049,17 @@ Na renderch scén je také patrné zobrazení spekulárních odlesků od blesku 
 
 Další vizuální chyby vznikají zejména při použití malého počtu fotografií, kdy není dostatek dat pro kvalitní otexturování všech ploch. Obecně se ale na testovacích scénách ukázalo, že není potřeba co největší počet používaných fotografií, obvykle stačilo 8 - 15 fotografií pro kvalitní otexturování scény a větší počet fotografií se již výrazně neprojevil.
 
+Čistě implementačním problémem je vznik aliasingu při zmenšování textur. Tento problém je tradičně řešení pomocí mipmapingu, bohužel jsem na začátku implementace pro jednodušší práci s fotografiemi zvolil použití obdélníkových textur, které mipmapy nepodporují. Tato úprava by nicméně neznamenala výrazné zásahy do aplikace.
 
 
 \chapter{Závěr}
 \label{chap:end}
+
+V práci byl navrhnut a implementován algoritmus pro pohledově závislé mapování textur v reálném čase. Výsledná aplikace pracuje v reálném čase a je schopná zároveň mapovat 32 i více fotografií. I když chod aplikace může být při použití velkých zdrojových fotografií krátkodobě zpomalen, jak je detailně popsáno v sekci \ref{sec:fps}, průměrné hodnoty fps jsou pro zobrazování v reálném čase naprosto dostačující.
+
+Hlavním cílem bylo kvalitní otexturování modelu z fotografií bez nutnosti náročného procesu tvorby textur. I když výsledky texturování nejsou tak kvalitní, jak bylo před implementací metody zamýšleno, podařilo se omezit vznik a výskyt běžných artefaktů a výsledné textury mají přijatelnou kvalitu. 
+
+Během implementace se jako jeden z největších problémů ukázala práce s velkými fotografiemi, které bylo nutné načítat za běhu z HDD a poté je bylo nutné načítat průběžně do GPU. Tento problém byl nakonec vyřešen pomocí malých náhledů, které se použijí jako textura dokud není nahraná fotografie v plném rozlišení. Dále se jako problematické ukázalo vytvořit robustní návrh OpenGL aplikace. I když real-time rendering je základem moderní počítačové grafiky, většina pozornosti je věnována rychlým algoritmům a akceleračním datovým strukturám a neexistují zažité architektury, jako je např. MVC v desktopovém a webovém prostředí.
 
 
 \renewcommand\refname{Zdroje}
@@ -1059,14 +1067,13 @@ Další vizuální chyby vznikají zejména při použití malého počtu fotogr
 \def\CS{$\cal C\kern-0.1667em\lower.5ex\hbox{$\cal S$}\kern-0.075em $}
 \bibliography{zdroje}
 
-
 \appendix
 
 
 \chapter{Seznam použitých zkratek}
 
 \begin{description}
-\item[API]
+\item[API] Application Programming Interface, aplikační rozhraní
 \item[CPU] Central processing unit, procesor
 \item[GPU] Graphic processing unit, grafický procesor
 \item[HDD] Hard disk drive, pevný disk
@@ -1074,15 +1081,69 @@ Další vizuální chyby vznikají zejména při použití malého počtu fotogr
 \item[GUI] Graphics user interface, grafické uživatelské rozhraní
 \item[JPEG]  Joint photographic experts group
 \item[fps]  Frames per second, počet snímků za vteřinu
+\item[MVC] Model view controller
+\item[OpenGL] Open Graphics Library
+\item[CUDA] Compute Unified Device Architecture
+\item[GLEW] OpenGL Extension Wrangler Library 
+\item[OpenCL] Open Computing Language
+\item[GLM] OpenGL Mathematics
 \end{description}
 
 \chapter{Instalační a uživatelská příručka}
 \label{chap:install}
 
 \section{Překlad aplikace}
-\section{Používání aplikace}
+
+Program využívá pro překlad qmake. Nejprve je nutné vytvořit soubor Makefile spuštěním příkazu ve složce src:
+
+\texttt{qmake -o Makefile qt-Release.pro}
+
+\noindent Poté se provede překlad aplikace v závislosti na použitém kompileru, obvykle pomocí:
+
+\texttt{make -f Makefile}
+
+\noindent Tím se vytvoří spustitelný soubor ve složce \texttt{dist/Release}. Pro spuštění aplikace je dále nutné zkopírovat složku \texttt{shaders} do složky, kde se nachází spustitelný soubor.
+
+\noindent Pro přeložení programu je nutné poskytnout následující knihovny:
+
+
+\begin{table}[h]
+\begin{center}
+\begin{tabular}{ |l|r| }
+\hline
+\textbf{Knihovna}  & \textbf{Minimální verze} \\ \hline
+\textbf{Qt} & 4.8  \\ \hline
+\textbf{OpenGL} & 4.0  \\ \hline
+\textbf{GLEW} & 1.8  \\ \hline
+\textbf{Assimp} & 3.0  \\ \hline
+\textbf{libjpeg} & 8  \\ \hline
+\end{tabular}
+\caption{Knihovny nezbytné pro překlad a spuštění aplikacie.}
+\label{tab:test-4}
+\end{center}
+\end{table}
+
+\section{Ovládání aplikace}
+
+Aplikace obsahuje grafické rozhraní, které umožňuje standardní ovládání. Po spuštění je nutné načíst scénu pomocí volby File $>$ Open v horním menu. Poté se otevře dialog, kde je možné zvolit typ kalibračních data a je nutné nastavit příslušné cesty.
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=\textwidth]{figures/app}
+\caption{Ukázka aplikace.}
+\label{fig:app}
+\end{center}
+\end{figure}
+
+Kamera se ovládá klávesami \texttt{W, A, S, D}, rotace scény je prováděna myší se stisknutým levým tlačítkem. Pomocí volby Render Passes v horním menu je možné zapínat a vypínat jednotlivé průchody, viz obr. \ref{fig:app}. V položce Settings je možné otevřít okno pro rotaci modelu a okno pro nastavení parametrů. V něm je možné nastavit počet používaných fotografií, zapnout korekci pohledových směrů a zapnout bilineární filtrování textur. Na spodní liště zobrazuje aplikace aktuální fps a počet používaných fotografií.
+
+
+
 
 \chapter{Obsah přiloženého CD}
 
+\begin{figure}[h!]
+\includegraphics[width=\textwidth/4]{figures/dvd}
+\end{figure}
 
 \end{document}
